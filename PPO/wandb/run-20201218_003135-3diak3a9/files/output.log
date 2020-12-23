@@ -1,0 +1,28 @@
+wandb: WARNING Calling run.save without any arguments is deprecated.Changes to attributes are automatically persisted.
+{'gamma': 0.99, 'update_interval': 5, 'actor_lr': 0.0005, 'critic_lr': 0.001, 'batch_size': 64, 'clip_ratio': 0.1, 'lmbda': 0.95, 'intervals': 3, 'episodes': 5, 'num': 1, 'epochs': 3, 'actor': {'layer1': 16, 'layer2': 16}, 'critic': {'layer1': 16, 'layer2': 16, 'layer3': 8}}
+2020-12-18 00:31:42.595322: I tensorflow/core/platform/cpu_feature_guard.cc:142] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN)to use the following CPU instructions in performance-critical operations:  SSE4.1 SSE4.2 AVX AVX2 AVX512F FMA
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2020-12-18 00:31:42.702162: I tensorflow/core/platform/profile_utils/cpu_utils.cc:104] CPU Frequency: 2900000000 Hz
+2020-12-18 00:31:42.702493: I tensorflow/compiler/xla/service/service.cc:168] XLA service 0x55ac2bb0bb80 initialized for platform Host (this does not guarantee that XLA will be used). Devices:
+2020-12-18 00:31:42.702545: I tensorflow/compiler/xla/service/service.cc:176]   StreamExecutor device (0): Host, Default Version
+Training Agent 0
+EP0 EpisodeReward=-1474.7796141806793
+EP1 EpisodeReward=-1398.0285225282885
+EP2 EpisodeReward=-1554.0475963011222
+EP3 EpisodeReward=-1564.2915423465085
+EP4 EpisodeReward=-1543.7490875521912
+Epoch=0	 Average reward=-1543.7490875521912
+Training Agent 0
+EP0 EpisodeReward=-1516.8412588331835
+EP1 EpisodeReward=-1621.5253809284375
+EP2 EpisodeReward=-1445.8242056983759
+EP3 EpisodeReward=-1503.0960550230097
+EP4 EpisodeReward=-1355.8375039076802
+Epoch=1	 Average reward=-1355.8375039076802
+Training Agent 0
+EP0 EpisodeReward=-1433.2150856596088
+EP1 EpisodeReward=-1465.0153925096856
+EP2 EpisodeReward=-1548.4302606238443
+EP3 EpisodeReward=-1254.359642361904
+EP4 EpisodeReward=-1569.062520252756
+Epoch=2	 Average reward=-1569.062520252756

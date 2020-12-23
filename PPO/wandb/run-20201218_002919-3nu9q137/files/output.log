@@ -1,0 +1,6 @@
+wandb: WARNING Calling run.save without any arguments is deprecated.Changes to attributes are automatically persisted.
+{'gamma': 0.99, 'update_interval': 5, 'actor_lr': 0.0005, 'critic_lr': 0.001, 'batch_size': 64, 'clip_ratio': 0.1, 'lmbda': 0.95, 'intervals': 3, 'episodes': 5, 'num': 1, 'epochs': 3, 'actor': {'layer1': 16, 'layer2': 16}, 'critic': {'layer1': 16, 'layer2': 16, 'layer3': 8}}
+Traceback (most recent call last):
+  File "ppo_avg.py", line 49, in <module>
+    env_t = gym.make(env_name)
+NameError: name 'gym' is not defined

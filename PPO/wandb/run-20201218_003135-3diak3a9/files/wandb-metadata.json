@@ -1,0 +1,16 @@
+{
+    "os": "Linux-3.10.0-1127.18.2.el7.x86_64-x86_64-with-centos-7.6.1810-Core",
+    "python": "3.7.9",
+    "heartbeatAt": "2020-12-18T00:31:41.821423",
+    "startedAt": "2020-12-18T00:31:35.350934",
+    "docker": null,
+    "cpu_count": 48,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "codePath": "ppo_avg.py",
+    "program": "ppo_avg.py",
+    "host": "holy7c04202.rc.fas.harvard.edu",
+    "username": "vqin",
+    "executable": "/n/home05/vqin/.conda/envs/es100/bin/python"
+}

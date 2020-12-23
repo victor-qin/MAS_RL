@@ -1,0 +1,18 @@
+name: es100
+channels:
+    - defaults
+    - conda-forge
+dependencies:
+    - python=3.7
+    - numpy
+    - scipy
+    - matplotlib
+    - tensorflow
+    - tensorflow_federated
+    - numba
+    - hdf5
+    - pip:
+        - argparse
+        - ipykernel
+        - wandb
+        - gym

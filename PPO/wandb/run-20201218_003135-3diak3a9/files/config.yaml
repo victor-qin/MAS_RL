@@ -1,0 +1,54 @@
+wandb_version: 1
+
+_wandb:
+  desc: null
+  value:
+    cli_version: 0.10.10
+    framework: tensorflow
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    python_version: 3.7.9
+actor:
+  desc: null
+  value:
+    layer1: 16
+    layer2: 16
+actor_lr:
+  desc: null
+  value: 0.0005
+batch_size:
+  desc: null
+  value: 64
+clip_ratio:
+  desc: null
+  value: 0.1
+critic:
+  desc: null
+  value:
+    layer1: 16
+    layer2: 16
+    layer3: 8
+critic_lr:
+  desc: null
+  value: 0.001
+episodes:
+  desc: null
+  value: 5
+epochs:
+  desc: null
+  value: 3
+gamma:
+  desc: null
+  value: 0.99
+intervals:
+  desc: null
+  value: 3
+lmbda:
+  desc: null
+  value: 0.95
+num:
+  desc: null
+  value: 1
+update_interval:
+  desc: null
+  value: 5
