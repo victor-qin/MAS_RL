@@ -7,7 +7,7 @@ import random
 from collections import deque
 
 from pathlib import Path
-import multiprocessing as mp
+import ray
 
 tf.keras.backend.set_floatx('float64')
 
@@ -38,7 +38,6 @@ class Actor:
         self.opt = tf.keras.optimizers.Adam(wandb.config.actor_lr)
 
     def create_model(self):
-        print(wandb.config.actor)
         return tf.keras.Sequential([
             Input((self.state_dim,)),
             Dense(wandb.config.actor['layer1'], activation='relu'),
@@ -101,20 +100,26 @@ class Critic:
         self.opt.apply_gradients(zip(grads, self.model.trainable_variables))
         return loss
     
+@ray.remote
 class Agent:
-    def __init__(self, env, iden = 0):
+    def __init__(self, env, replay, actor, critic, target_actor, target_critic, iden = 0):
         self.env = env
         self.state_dim = self.env.observation_space.shape[0]
         self.action_dim = self.env.action_space.shape[0]
         self.action_bound = self.env.action_space.high[0]
 
-        self.buffer = ReplayBuffer()
+        # self.buffer = ReplayBuffer()
+        self.buffer = replay
 
-        self.actor = Actor(self.state_dim, self.action_dim, self.action_bound)
-        self.critic = Critic(self.state_dim, self.action_dim)
-        
-        self.target_actor = Actor(self.state_dim, self.action_dim, self.action_bound)
-        self.target_critic = Critic(self.state_dim, self.action_dim)
+        # self.actor = Actor(self.state_dim, self.action_dim, self.action_bound)
+        # self.critic = Critic(self.state_dim, self.action_dim)
+        self.actor = actor
+        self.critic = critic
+
+        # self.target_actor = Actor(self.state_dim, self.action_dim, self.action_bound)
+        # self.target_critic = Critic(self.state_dim, self.action_dim)
+        self.target_actor = target_actor
+        self.target_critic = target_critic
 
         actor_weights = self.actor.model.get_weights()
         critic_weights = self.critic.model.get_weights()
@@ -122,8 +127,7 @@ class Agent:
         self.target_critic.model.set_weights(critic_weights)
         
         self.iden = iden
-        
-    
+
     def target_update(self):
         actor_weights = self.actor.model.get_weights()
         t_actor_weights = self.target_actor.model.get_weights()
@@ -179,34 +183,18 @@ class Agent:
 
             state = self.env.reset()
             bg_noise = np.zeros(self.action_dim)
-            print("episode {}, bot {}".format(ep, self.iden))
-            temp = np.reshape(state, [1, self.state_dim])
-            print(self.actor.model.summary())
-            print(self.actor.predict(temp))
-            print(self.actor.model.predict(temp))
             while not done:    # run till done by hitting the action that's done
 #                 self.env.render()
-
-                print("simul start running episode {}, bot {}".format(ep, self.iden))
-    
-                action = self.actor.get_action(state)   # pick an action, add noise, clip the action
-        
-                print("simul mid running episode {}, bot {}".format(ep, self.iden))
-            
+   
+                action = self.actor.get_action(state)   # pick an action, add noise, clip the action           
                 noise = self.ou_noise(bg_noise, dim=self.action_dim)
                 action = np.clip(action + noise, -self.action_bound, self.action_bound)
 
-                
-                
                 next_state, reward, done, _ = self.env.step(action)
                 self.buffer.put(state, action, (reward+8)/8, next_state, done)
                 bg_noise = noise     # why does the noise wander in such a weird way
                 episode_reward += reward
                 state = next_state
-                
-                print("simul end running episode {}, bot {}".format(ep, self.iden))
-            
-            print("simul done episode {}, bot {}".format(ep, self.iden))
                 
             if self.buffer.size() >= wandb.config.batch_size and self.buffer.size() >= wandb.config.train_start:    # update the states if enough
                 self.replay()                
