@@ -202,7 +202,7 @@ class Agent:
             wandb.log({'Reward' + str(self.iden): episode_reward})
             
         if(out != None):
-            out[iden] = episode_reward
+            out[self.iden] = episode_reward
         else:
             return episode_reward
 
