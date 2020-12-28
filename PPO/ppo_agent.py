@@ -1,6 +1,6 @@
-import wandb
-import tensorflow as tf
-from tensorflow.keras.layers import Input, Dense, Lambda
+# import wandb
+# import tensorflow as tf
+# from tensorflow.keras.layers import Input, Dense, Lambda
 
 import gym
 import numpy as np
@@ -10,6 +10,13 @@ from pathlib import Path
 tf.keras.backend.set_floatx('float64')
 
 class Actor:
+
+    import wandb
+    import tensorflow as tf
+    from tensorflow.keras.layers import Input, Dense, Lambda
+
+    tf.keras.backend.set_floatx('float64')
+
     def __init__(self, state_dim, action_dim, action_bound, std_bound):
         self.state_dim = state_dim
         self.action_dim = action_dim
