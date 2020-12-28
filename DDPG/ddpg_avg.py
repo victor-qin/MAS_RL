@@ -33,8 +33,8 @@ if __name__ == "__main__":
     wandb.config.tau = 0.005
     wandb.config.train_start = 400
     wandb.config.episodes = 5
-    wandb.config.num = 2
-    wandb.config.epochs = 3
+    wandb.config.num = 3
+    wandb.config.epochs = 10
 
     wandb.config.actor = {'layer1': 128, 'layer2' : 128}
     wandb.config.critic = {'state1': 256, 'state2': 128, 'actor1': 128, 'cat1': 64}

@@ -179,34 +179,20 @@ class Agent:
 
             state = self.env.reset()
             bg_noise = np.zeros(self.action_dim)
-            print("episode {}, bot {}".format(ep, self.iden))
-            temp = np.reshape(state, [1, self.state_dim])
-            print(self.actor.model.summary())
-            print(self.actor.predict(temp))
-            print(self.actor.model.predict(temp))
+        
             while not done:    # run till done by hitting the action that's done
 #                 self.env.render()
 
-                print("simul start running episode {}, bot {}".format(ep, self.iden))
-    
-                action = self.actor.get_action(state)   # pick an action, add noise, clip the action
-        
-                print("simul mid running episode {}, bot {}".format(ep, self.iden))
-            
+                action = self.actor.get_action(state)   # pick an action, add noise, clip the action        
                 noise = self.ou_noise(bg_noise, dim=self.action_dim)
                 action = np.clip(action + noise, -self.action_bound, self.action_bound)
 
-                
-                
                 next_state, reward, done, _ = self.env.step(action)
                 self.buffer.put(state, action, (reward+8)/8, next_state, done)
                 bg_noise = noise     # why does the noise wander in such a weird way
                 episode_reward += reward
                 state = next_state
                 
-                print("simul end running episode {}, bot {}".format(ep, self.iden))
-            
-            print("simul done episode {}, bot {}".format(ep, self.iden))
                 
             if self.buffer.size() >= wandb.config.batch_size and self.buffer.size() >= wandb.config.train_start:    # update the states if enough
                 self.replay()                
