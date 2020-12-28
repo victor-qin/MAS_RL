@@ -1,3 +1,4 @@
 batch_logs/
 wandb/
 *~
+*__pycache__*
