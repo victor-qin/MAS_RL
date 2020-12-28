@@ -9,10 +9,10 @@ dependencies:
     - matplotlib
     - tensorflow
     - tensorflow_federated
-    - numba
     - hdf5
     - pip:
         - argparse
         - ipykernel
         - wandb
         - gym
+	- ray
