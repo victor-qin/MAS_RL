@@ -17,7 +17,7 @@ if __name__ == "__main__":
     
     ####configurations
     group_temp = "test-ray"
-    wandb.init(group=group_temp, project="rl-ppo-federated")
+    wandb.init(group=group_temp, project="rl-ppo-federated", mode="online")
     wandb.run.name = wandb.run.id
     wandb.run.tags = [group_temp]
     wandb.run.notes ="PPO running on quarter complexity in the neural net,1-bot small net, 30 simul run for 400"
@@ -34,8 +34,8 @@ if __name__ == "__main__":
     wandb.config.intervals = 3
     
     wandb.config.episodes = 5
-    wandb.config.num = 2
-    wandb.config.epochs = 3
+    wandb.config.num = 3
+    wandb.config.epochs = 10
 
     wandb.config.actor = {'layer1': 16, 'layer2' : 16}
     wandb.config.critic = {'layer1': 16, 'layer2' : 16, 'layer3': 8}
