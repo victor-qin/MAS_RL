@@ -5,7 +5,8 @@ import numpy as np
 
 from pathlib import Path
 
-from ppo_agent import Agent, writeout
+from ppo_agent_raytest import Agent, writeout
+import ray
 
 tf.keras.backend.set_floatx('float64')
 
@@ -15,7 +16,7 @@ if __name__ == "__main__":
     except: pass
     
     ####configurations
-    group_temp = "test"
+    group_temp = "test-ray"
     wandb.init(group=group_temp, project="rl-ppo-federated")
     wandb.run.name = wandb.run.id
     wandb.run.tags = [group_temp]
@@ -33,22 +34,33 @@ if __name__ == "__main__":
     wandb.config.intervals = 3
     
     wandb.config.episodes = 5
-    wandb.config.num = 1
+    wandb.config.num = 2
     wandb.config.epochs = 3
 
     wandb.config.actor = {'layer1': 16, 'layer2' : 16}
     wandb.config.critic = {'layer1': 16, 'layer2' : 16, 'layer3': 8}
     
-    print(wandb.config)
+    # print(wandb.config)
+    ray.init()
     
     # main run    
     N = wandb.config.num
     agents = []
     
+    class Struct:
+        def __init__(self, **entries):
+            self.__dict__.update(entries)
+
+    configuration = Struct(**wandb.config.as_dict())
+
     # set up the agent
     for i in range(N):
         env_t = gym.make(env_name)
-        agents.append(Agent(env_t, i))
+
+        temp = Agent.remote(configuration, env_t, i)
+        ref = temp.iden_get.remote()
+        ray.get(ref)
+        agents.append(temp)
 
     # early write out
     writeout(agents, 0)
@@ -56,13 +68,21 @@ if __name__ == "__main__":
     # start the training
     for z in range(wandb.config.epochs):
 
-        reward = 0
+        rewards = []
+        jobs = []
         # train the agent
         for j in range(len(agents)):
-            print('Training Agent {}'.format(agents[j].iden))
-            reward += agents[j].train(wandb.config.episodes)
-    
-        reward = reward / N
+            # print('Training Agent {}'.format(agents[j].iden))
+            jobs.append(agents[j].train.remote(max_episodes = wandb.config.episodes))
+
+        for j in range(len(agents)):
+            rewards.append(ray.get(jobs[j]))
+            
+            for k in range(len(rewards[j])):
+                wandb.log({'Reward' + str(j): rewards[j][k]})
+
+        rewards = np.array(rewards)
+        reward = np.average(rewards[:, -1])
         print('Epoch={}\t Average reward={}'.format(z, reward))
         wandb.log({'batch': z, 'Epoch': reward})
 
@@ -71,24 +91,29 @@ if __name__ == "__main__":
         critic_avg = []
         actor_avg = []
 
-        for i in range(len(agents[0].actor.model.get_weights())):
-            
-            actor_t = agents[0].actor.model.get_weights()[i]
+        ag0 = ray.get(agents[0].actor_get_weights.remote())
+        for i in range(len(ag0)):
 
-            for j in range(1, N):
-                actor_t += agents[j].actor.model.get_weights()[i]
+            actor_t = ag0[i]
 
-            actor_t = actor_t / N
+            for j in range(1, wandb.config.num):
+                ref = agents[j].actor_get_weights.remote()
+                actor_t = actor_t + ray.get(ref)[i]
+
+            actor_t = actor_t / wandb.config.num
             actor_avg.append(actor_t)
 
 
-        for i in range(len(agents[0].critic.model.get_weights())):
-            critic_t = agents[0].critic.model.get_weights()[i]
+        ag0 = ray.get(agents[0].critic_get_weights.remote())
+        for i in range(len(ag0)):
 
-            for j in range(1, N):
-                critic_t += agents[j].critic.model.get_weights()[i]
+            critic_t = ag0[i]
 
-            critic_t = critic_t / N
+            for j in range(1, wandb.config.num):
+                ref = agents[j].critic_get_weights.remote()
+                critic_t = critic_t + ray.get(ref)[i]
+
+            critic_t = critic_t / wandb.config.num
             critic_avg.append(critic_t)
 
 
@@ -97,13 +122,13 @@ if __name__ == "__main__":
             
         # set the average
         for j in range(N):
-            agents[j].actor.model.set_weights(actor_avg)
-            agents[j].critic.model.set_weights(critic_avg)
+            agents[j].actor_set_weights.remote(actor_avg)
+            agents[j].critic_set_weights.remote(critic_avg)
 
         if z % 50 == 0:
             writeout([agents[0]], z, "average")
             
-        writeout(agents, wandb.config.epochs)
+    writeout(agents, wandb.config.epochs)
 
     # wrtie things out
 #     for j in range(N):

@@ -5,7 +5,6 @@ import numpy as np
 from ddpg_agent_raytest import Agent, writeout
 import tensorflow as tf
 import ray
-import os
 
 tf.keras.backend.set_floatx('float64')
 
@@ -16,9 +15,8 @@ if __name__ == "__main__":
     
     ####configurations
     group_temp = "test-ray"
-    id = wandb.util.generate_id()
-    wandb.init(id = id, group=group_temp, project="rl-ddpg-federated", mode="online", resume = "allow")
-    active = id
+    # id = wandb.util.generate_id()
+    wandb.init(group=group_temp, project="rl-ddpg-federated", mode="online", resume = "allow")
     wandb.run.name = wandb.run.id
     wandb.run.tags = [group_temp]
     wandb.run.notes = "running on half node and also 5 bots, 30 groupings"
@@ -54,7 +52,7 @@ if __name__ == "__main__":
     for i in range(N):
         env_t = gym.make(env_name)
         
-        temp = Agent.remote(configuration, env_t, active, i)
+        temp = Agent.remote(configuration, env_t, i)
         ref = temp.iden_get.remote()
         ray.get(ref)
         agents.append(temp)

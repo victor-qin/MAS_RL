@@ -8,7 +8,6 @@ from collections import deque
 
 from pathlib import Path
 import ray
-import os
 
 tf.keras.backend.set_floatx('float64')
 
@@ -111,10 +110,9 @@ class Agent(object):
             return loss
 
     # def __init__(self, env, replay, actor, critic, target_actor, target_critic, iden = 0):
-    def __init__(self, config, env, run, iden = 0):
+    def __init__(self, config, env, iden = 0):
 
         self.config = config
-        self.run = run
 
         self.env = env
         self.state_dim = self.env.observation_space.shape[0]

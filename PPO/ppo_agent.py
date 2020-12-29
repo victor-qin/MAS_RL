@@ -1,6 +1,6 @@
-# import wandb
-# import tensorflow as tf
-# from tensorflow.keras.layers import Input, Dense, Lambda
+import wandb
+import tensorflow as tf
+from tensorflow.keras.layers import Input, Dense, Lambda
 
 import gym
 import numpy as np
