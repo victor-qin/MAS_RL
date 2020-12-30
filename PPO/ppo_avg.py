@@ -22,7 +22,7 @@ if __name__ == "__main__":
     wandb.run.tags = [group_temp]
     wandb.run.notes ="PPO running on quarter complexity in the neural net,1-bot small net, 30 simul run for 400"
     wandb.run.save()
-    env_name = 'Pendulum-v0'
+    env_name = "QuadrotorStabilizeAttitude-MotorCommands-v0"
     
     wandb.config.gamma = 0.99
     wandb.config.update_interval = 5

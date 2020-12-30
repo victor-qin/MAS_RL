@@ -1,7 +1,8 @@
 import wandb
-import gym
 import numpy as np
-# from ddpg_agent import ReplayBuffer, Actor, Critic, Agent, writeout
+import gym
+import gym_quadrotor
+
 from ddpg_agent_raytest import Agent, writeout
 import tensorflow as tf
 import ray
@@ -21,7 +22,7 @@ if __name__ == "__main__":
     wandb.run.tags = [group_temp]
     wandb.run.notes = "running on half node and also 5 bots, 30 groupings"
     wandb.run.save()
-    env_name = 'Pendulum-v0'
+    env_name = "QuadrotorStabilizeAttitude-MotorCommands-v0"
     
     wandb.config.gamma = 0.99
     wandb.config.actor_lr = 0.001
