@@ -1,0 +1,3 @@
+[submodule "quadgym"]
+	path = quadgym
+	url = https://github.com/ngc92/quadgym
