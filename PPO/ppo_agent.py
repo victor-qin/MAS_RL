@@ -9,6 +9,33 @@ from pathlib import Path
 
 tf.keras.backend.set_floatx('float64')
 
+def save_frames_as_gif(frames, path='./', filename='gym_animation.gif'):
+
+    #Mess with this to change frame size
+    plt.figure(figsize=(frames[0].shape[1] / 72.0, frames[0].shape[0] / 72.0), dpi=72)
+
+    patch = plt.imshow(frames[0])
+    plt.axis('off')
+
+    def animate(i):
+        patch.set_data(frames[i])
+
+    anim = animation.FuncAnimation(plt.gcf(), animate, frames = len(frames), interval=50)
+    anim.save(path + filename, writer='imagemagick', fps=60)
+
+# function for writing models out
+def writeout(agents, index, title = None):
+    for j in range(len(agents)):
+        if title == None:
+            name = j
+        else:
+            name = title
+
+        path = wandb.run.dir + "/" + "epoch-" + str(index) + "/"
+        Path(path).mkdir(parents=True, exist_ok=True)
+        agents[j].actor.model.save_weights(path + wandb.run.id + "-agent{}-actor".format(name), save_format="h5")
+        agents[j].critic.model.save_weights(path + wandb.run.id + "-agent{}-critic".format(name), save_format="h5")
+
 class Actor:
 
     import wandb
@@ -135,7 +162,7 @@ class Agent:
             batch = np.append(batch, elem, axis=0)
         return batch
 
-    def train(self, max_episodes=1000):
+    def train(self, max_episodes=1000, render = False):
         for ep in range(max_episodes):
             state_batch = []
             action_batch = []
@@ -146,8 +173,11 @@ class Agent:
 
             state = self.env.reset()
 
+            frames = []
             while not done:
-                # self.env.render()
+                if(render):
+                    frames.append(self.env.render())
+                
                 log_old_policy, action = self.actor.get_action(state)
 
                 next_state, reward, done, _ = self.env.step(action)
@@ -188,20 +218,8 @@ class Agent:
                 episode_reward += reward[0][0]
                 state = next_state[0]
 
+
             print('EP{} EpisodeReward={}'.format(ep, episode_reward))
             wandb.log({'Reward' + str(self.iden): episode_reward})
         
         return episode_reward
-
-    # function for writing models out
-def writeout(agents, index, title = None):
-    for j in range(len(agents)):
-        if title == None:
-            name = j
-        else:
-            name = title
-
-        path = wandb.run.dir + "/" + "epoch-" + str(index) + "/"
-        Path(path).mkdir(parents=True, exist_ok=True)
-        agents[j].actor.model.save_weights(path + wandb.run.id + "-agent{}-actor".format(name), save_format="h5")
-        agents[j].critic.model.save_weights(path + wandb.run.id + "-agent{}-critic".format(name), save_format="h5")

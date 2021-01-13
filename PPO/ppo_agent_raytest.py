@@ -10,6 +10,16 @@ import ray
 
 tf.keras.backend.set_floatx('float64')
 
+# function for writing models out
+def writeout(agents, index, title = None):
+    
+    Path(wandb.run.dir + "/" + "epoch-" + str(index) + "/").mkdir(parents=True, exist_ok=True)
+    
+    for j in range(len(agents)):
+        ref = agents[j].save_weights.remote(index, wandb.run.dir, wandb.run.id)
+        ray.get(ref)
+
+
 @ray.remote
 class Agent(object):
 
@@ -151,11 +161,9 @@ class Agent(object):
             episode_reward, done = 0, False
 
             state = self.env.reset()
-
             while not done:
-                # self.env.render()
+                
                 log_old_policy, action = self.actor.get_action(state)
-
                 next_state, reward, done, _ = self.env.step(action)
 
                 state = np.reshape(state, [1, self.state_dim])
@@ -193,7 +201,7 @@ class Agent(object):
 
                 episode_reward += reward[0][0]
                 state = next_state[0]
-
+            
             print('Bot{}, EP{} EpisodeReward={}'.format(self.iden, ep, episode_reward))
             output.append(episode_reward)
             # wandb.log({'Reward' + str(self.iden): episode_reward})
@@ -221,13 +229,3 @@ class Agent(object):
 
     def critic_set_weights(self, avg):
         self.critic.model.set_weights(avg)
-
-# function for writing models out
-def writeout(agents, index, title = None):
-    
-    Path(wandb.run.dir + "/" + "epoch-" + str(index) + "/").mkdir(parents=True, exist_ok=True)
-    
-    for j in range(len(agents)):
-
-        ref = agents[j].save_weights.remote(index, wandb.run.dir, wandb.run.id)
-        ray.get(ref)

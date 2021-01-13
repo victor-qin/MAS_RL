@@ -184,7 +184,6 @@ class Agent:
             state = self.env.reset()
             bg_noise = np.zeros(self.action_dim)
             while not done:    # run till done by hitting the action that's done
-#                 self.env.render()
    
                 action = self.actor.get_action(state)   # pick an action, add noise, clip the action           
                 noise = self.ou_noise(bg_noise, dim=self.action_dim)

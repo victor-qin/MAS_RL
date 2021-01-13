@@ -197,7 +197,6 @@ class Agent(object):
             state = self.env.reset()
             bg_noise = np.zeros(self.action_dim)
             while not done:    # run till done by hitting the action that's done
-#                 self.env.render()
    
                 action = self.actor.get_action(state)   # pick an action, add noise, clip the action           
                 noise = self.ou_noise(bg_noise, dim=self.action_dim)
@@ -221,6 +220,19 @@ class Agent(object):
         else:
             return rewards
 
+    def evaluate(self):
+        episode_reward, done = 0, False
+
+        state = self.env.reset()
+        while not done:
+            action = self.actor.get_action(state) 
+            action = np.clip(action, -self.action_bound, self.action_bound)
+
+            next_state, reward, done, _ = self.env.step(action)
+            episode_reward += reward
+            state = next_state
+            
+        return episode_reward
 
     # functions for returning things
     def save_weights(self, index, dir, id):

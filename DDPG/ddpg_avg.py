@@ -22,7 +22,7 @@ if __name__ == "__main__":
     wandb.run.tags = [group_temp]
     wandb.run.notes = "running quadcopter simulation, quadgym, attitude only, 7 bots"
     wandb.run.save()
-    env_name = "QuadrotorStabilizeAttitude-MotorCommands-v0"
+    env_name = "Pendulum-v0"
     
     wandb.config.gamma = 0.99
     wandb.config.actor_lr = 0.001
@@ -80,8 +80,6 @@ if __name__ == "__main__":
 
         rewards = np.array(rewards)
         reward = np.average(rewards[:, -1])
-        print('Epoch={}\t Average reward={}'.format(z, reward))
-        wandb.log({'batch': z, 'Epoch': reward})
 
         # get the average - actor and critic
         critic_avg = []
@@ -115,10 +113,25 @@ if __name__ == "__main__":
         if z % 50 == 0:
             writeout(agents, z)
 
-        # set the average
+        # set the average and evaluate
+        rewards = []
+        jobs = []
         for j in range(N):
             agents[j].actor_set_weights.remote(actor_avg)
             agents[j].critic_set_weights.remote(critic_avg)
+
+            jobs.append(agents[j].evaluate.remote())
+
+        for j in range(len(agents)):
+            rewards.append(ray.get(jobs[j]))
+            
+            for k in range(len(rewards[j])):
+                wandb.log({'Reward' + str(j): rewards[j][k]})
+
+        rewards = np.array(rewards)
+        reward = np.average(rewards[:, -1])
+        print('Epoch={}\t Average reward={}'.format(z, reward))
+        wandb.log({'batch': z, 'Epoch-avg': reward})
 
         if z % 50 == 0:
             writeout([agents[0]], z, "average")
