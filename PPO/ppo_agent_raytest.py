@@ -159,7 +159,7 @@ class Agent(object):
                 next_state, reward, done, _ = self.env.step(action)
 
                 state = np.reshape(state, [1, self.state_dim])
-                action = np.reshape(action, [1, 1])
+                action = np.reshape(action, [1, self.action_dim])
                 next_state = np.reshape(next_state, [1, self.state_dim])
                 reward = np.reshape(reward, [1, 1])
                 log_old_policy = np.reshape(log_old_policy, [1, 1])
