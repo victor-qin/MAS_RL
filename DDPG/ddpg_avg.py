@@ -17,7 +17,7 @@ if __name__ == "__main__":
     ####configurations
     group_temp = "123020-2"
     # id = wandb.util.generate_id()
-    wandb.init(group=group_temp, project="rl-ddpg-federated", mode="online", resume = "allow")
+    wandb.init(group=group_temp, project="rl-ddpg-federated", mode="offline", resume = "allow")
     wandb.run.name = wandb.run.id
     wandb.run.tags = [group_temp]
     wandb.run.notes = "running quadcopter simulation, quadgym, attitude only, 7 bots"
@@ -31,8 +31,8 @@ if __name__ == "__main__":
     wandb.config.tau = 0.005
     wandb.config.train_start = 400
     wandb.config.episodes = 5
-    wandb.config.num = 7
-    wandb.config.epochs = 400
+    wandb.config.num = 3
+    wandb.config.epochs = 3
 
     wandb.config.actor = {'layer1': 128, 'layer2' : 128}
     wandb.config.critic = {'state1': 256, 'state2': 128, 'actor1': 128, 'cat1': 64}
@@ -116,10 +116,16 @@ if __name__ == "__main__":
         # set the average and evaluate
         rewards = []
         jobs = []
-        for j in range(N):
-            agents[j].actor_set_weights.remote(actor_avg)
-            agents[j].critic_set_weights.remote(critic_avg)
+        for j in range(len(agents)):
+            jobs.append(agents[j].actor_set_weights.remote(actor_avg))
+            jobs.append(agents[j].critic_set_weights.remote(critic_avg))
 
+        while True:
+            _, unready = ray.wait(jobs)
+            if unready == 0:
+                break
+
+        for j in range(len(agents)):
             jobs.append(agents[j].evaluate.remote())
 
         for j in range(len(agents)):
