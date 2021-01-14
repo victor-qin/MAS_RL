@@ -15,12 +15,12 @@ if __name__ == "__main__":
     except: pass
     
     ####configurations
-    group_temp = "123020-2"
+    group_temp = "011321-test"
     # id = wandb.util.generate_id()
-    wandb.init(group=group_temp, project="rl-ddpg-federated", mode="offline", resume = "allow")
+    wandb.init(group=group_temp, project="rl-ddpg-federated", mode="online")
     wandb.run.name = wandb.run.id
     wandb.run.tags = [group_temp]
-    wandb.run.notes = "running quadcopter simulation, quadgym, attitude only, 7 bots"
+    wandb.run.notes = "pendulum, evaluation based on averaging at the end"
     wandb.run.save()
     env_name = "Pendulum-v0"
     
