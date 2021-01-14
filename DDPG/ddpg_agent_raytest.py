@@ -252,9 +252,11 @@ class Agent(object):
     # function for setting things
     def actor_set_weights(self, avg):
         self.actor.model.set_weights(avg)
+        return
 
     def critic_set_weights(self, avg):
         self.critic.model.set_weights(avg)
+        return
 
 # function for writing models out
 def writeout(agents, index, title = None):

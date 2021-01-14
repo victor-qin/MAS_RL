@@ -114,28 +114,29 @@ if __name__ == "__main__":
             writeout(agents, z)
 
         # set the average and evaluate
-        rewards = []
         jobs = []
         for j in range(len(agents)):
             jobs.append(agents[j].actor_set_weights.remote(actor_avg))
             jobs.append(agents[j].critic_set_weights.remote(critic_avg))
 
-        while True:
-            _, unready = ray.wait(jobs)
-            if unready == 0:
-                break
+        for k in range(len(jobs)):
+            ray.get(jobs[k])
 
+        # while True:
+        #     _, unready = ray.wait(jobs)
+        #     print(unready)
+        #     if len(unready) == 0:
+        #         break
+        rewards = []
+        jobs = []
         for j in range(len(agents)):
             jobs.append(agents[j].evaluate.remote())
 
         for j in range(len(agents)):
             rewards.append(ray.get(jobs[j]))
-            
-            for k in range(len(rewards[j])):
-                wandb.log({'Reward' + str(j): rewards[j][k]})
 
         rewards = np.array(rewards)
-        reward = np.average(rewards[:, -1])
+        reward = np.average(rewards)
         print('Epoch={}\t Average reward={}'.format(z, reward))
         wandb.log({'batch': z, 'Epoch-avg': reward})
 

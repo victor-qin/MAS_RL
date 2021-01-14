@@ -208,6 +208,22 @@ class Agent(object):
         
         return output
 
+    def evaluate(self):
+        episode_reward, done = 0, False
+
+        state = self.env.reset()
+        while not done:
+            action = self.actor.get_action(state) 
+            action = np.clip(action, -self.action_bound, self.action_bound)
+
+            _, action = self.actor.get_action(state)
+            next_state, reward, done, _ = self.env.step(action)
+            
+            episode_reward += reward
+            state = next_state
+            
+        return episode_reward
+
     # functions for returning things
     def save_weights(self, index, dir, id):
         print(dir)
@@ -226,6 +242,8 @@ class Agent(object):
     # function for setting things
     def actor_set_weights(self, avg):
         self.actor.model.set_weights(avg)
+        return
 
     def critic_set_weights(self, avg):
         self.critic.model.set_weights(avg)
+        return
