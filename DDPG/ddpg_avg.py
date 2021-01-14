@@ -118,9 +118,10 @@ if __name__ == "__main__":
         for j in range(len(agents)):
             jobs.append(agents[j].actor_set_weights.remote(actor_avg))
             jobs.append(agents[j].critic_set_weights.remote(critic_avg))
-
-        for k in range(len(jobs)):
-            ray.get(jobs[k])
+	
+	ray.wait(jobs, num_returns = 2 * len(agents), timeout=5000)
+        # for k in range(len(jobs)):
+        #     ray.get(jobs[k])
 
         # while True:
         #     _, unready = ray.wait(jobs)
