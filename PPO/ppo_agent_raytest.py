@@ -16,7 +16,7 @@ def writeout(agents, index, title = None):
     Path(wandb.run.dir + "/" + "epoch-" + str(index) + "/").mkdir(parents=True, exist_ok=True)
     
     for j in range(len(agents)):
-        ref = agents[j].save_weights.remote(index, wandb.run.dir, wandb.run.id)
+        ref = agents[j].save_weights.remote(index, wandb.run.dir, wandb.run.id, title)
         ray.get(ref)
 
 
@@ -218,18 +218,22 @@ class Agent(object):
 
             _, action = self.actor.get_action(state)
             next_state, reward, done, _ = self.env.step(action)
-            
+
             episode_reward += reward
             state = next_state
             
         return episode_reward
 
     # functions for returning things
-    def save_weights(self, index, dir, id):
+    def save_weights(self, index, dir, id, title = None):
         print(dir)
-        self.actor.model.save_weights(dir + "/" + "epoch-" + str(index) + "/" + id + "-agent{}-actor".format(self.iden), save_format="h5")
-        self.critic.model.save_weights(dir + "/" + "epoch-" + str(index) + "/" + id + "-agent{}-critic".format(self.iden), save_format="h5")
+        mark = title
+        if title == None:
+            mark = self.iden
 
+        self.actor.model.save_weights(dir + "/" + "epoch-" + str(index) + "/" + id + "-agent{}-actor".format(mark), save_format="h5")
+        self.critic.model.save_weights(dir + "/" + "epoch-" + str(index) + "/" + id + "-agent{}-critic".format(mark), save_format="h5")
+    
     def actor_get_weights(self):
         return self.actor.model.get_weights()
 

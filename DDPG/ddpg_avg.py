@@ -63,6 +63,7 @@ if __name__ == "__main__":
     writeout(agents, 0)
         
     # start the training
+    max_reward = -np.inf
     for z in range(wandb.config.epochs):
 
         rewards = []
@@ -118,8 +119,9 @@ if __name__ == "__main__":
         for j in range(len(agents)):
             jobs.append(agents[j].actor_set_weights.remote(actor_avg))
             jobs.append(agents[j].critic_set_weights.remote(critic_avg))
-	
-	ray.wait(jobs, num_returns = 2 * len(agents), timeout=5000)
+        
+        ray.wait(jobs, num_returns = 2 * len(agents), timeout = 5000)
+        
         # for k in range(len(jobs)):
         #     ray.get(jobs[k])
 
@@ -140,6 +142,10 @@ if __name__ == "__main__":
         reward = np.average(rewards)
         print('Epoch={}\t Average reward={}'.format(z, reward))
         wandb.log({'batch': z, 'Epoch-avg': reward})
+
+        if reward > max_reward:
+            max_reward = reward
+            writeout([agents[0]], z, "MAX")
 
         if z % 50 == 0:
             writeout([agents[0]], z, "average")

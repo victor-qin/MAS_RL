@@ -11,6 +11,15 @@ import ray
 
 tf.keras.backend.set_floatx('float64')
 
+# function for writing models out
+def writeout(agents, index, title = None):
+    
+    Path(wandb.run.dir + "/" + "epoch-" + str(index) + "/").mkdir(parents=True, exist_ok=True)
+    
+    for j in range(len(agents)):
+        ref = agents[j].save_weights.remote(index, wandb.run.dir, wandb.run.id, title)
+        ray.get(ref)
+
 @ray.remote
 class Agent(object):
 
@@ -235,10 +244,14 @@ class Agent(object):
         return episode_reward
 
     # functions for returning things
-    def save_weights(self, index, dir, id):
+    def save_weights(self, index, dir, id, title=None):
         print(dir)
-        self.actor.model.save_weights(dir + "/" + "epoch-" + str(index) + "/" + id + "-agent{}-actor".format(self.iden), save_format="h5")
-        self.critic.model.save_weights(dir + "/" + "epoch-" + str(index) + "/" + id + "-agent{}-critic".format(self.iden), save_format="h5")
+        mark = title
+        if title == None:
+            mark = self.iden
+
+        self.actor.model.save_weights(dir + "/" + "epoch-" + str(index) + "/" + id + "-agent{}-actor".format(mark), save_format="h5")
+        self.critic.model.save_weights(dir + "/" + "epoch-" + str(index) + "/" + id + "-agent{}-critic".format(mark), save_format="h5")
 
     def actor_get_weights(self):
         return self.actor.model.get_weights()
@@ -258,12 +271,12 @@ class Agent(object):
         self.critic.model.set_weights(avg)
         return
 
-# function for writing models out
-def writeout(agents, index, title = None):
+# # function for writing models out
+# def writeout(agents, index, title = None):
     
-    Path(wandb.run.dir + "/" + "epoch-" + str(index) + "/").mkdir(parents=True, exist_ok=True)
+#     Path(wandb.run.dir + "/" + "epoch-" + str(index) + "/").mkdir(parents=True, exist_ok=True)
     
-    for j in range(len(agents)):
+#     for j in range(len(agents)):
 
-        ref = agents[j].save_weights.remote(index, wandb.run.dir, wandb.run.id)
-        ray.get(ref)
+#         ref = agents[j].save_weights.remote(index, wandb.run.dir, wandb.run.id)
+#         ray.get(ref)
