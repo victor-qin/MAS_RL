@@ -2,3 +2,4 @@ batch_logs/
 *wandb*
 *~
 *__pycache__
+*.pyc
