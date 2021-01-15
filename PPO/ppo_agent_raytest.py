@@ -212,7 +212,9 @@ class Agent(object):
         episode_reward, done = 0, False
 
         state = self.env.reset()
+        renders = []
         while not done:
+
             action = self.actor.get_action(state) 
             action = np.clip(action, -self.action_bound, self.action_bound)
 
@@ -221,7 +223,7 @@ class Agent(object):
 
             episode_reward += reward
             state = next_state
-            
+
         return episode_reward
 
     # functions for returning things

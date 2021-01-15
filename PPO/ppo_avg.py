@@ -86,6 +86,9 @@ if __name__ == "__main__":
         rewards = np.array(rewards)
         reward = np.average(rewards[:, -1])
 
+        print('Epoch={}\t Average reward={}'.format(z, reward))
+        wandb.log({'batch': z, 'Epoch-critic': reward})
+
         # get the average - actor and critic
         critic_avg = []
         actor_avg = []
