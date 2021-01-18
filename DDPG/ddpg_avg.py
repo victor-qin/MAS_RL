@@ -15,12 +15,12 @@ if __name__ == "__main__":
     except: pass
     
     ####configurations
-    group_temp = "011321-test"
+    group_temp = "011421-1_64"
     # id = wandb.util.generate_id()
     wandb.init(group=group_temp, project="rl-ddpg-federated", mode="online")
     wandb.run.name = wandb.run.id
     wandb.run.tags = [group_temp]
-    wandb.run.notes = "pendulum, evaluation based on averaging at the end"
+    wandb.run.notes = "pendulum, DDPG with 1 bots 128/64/32 layers, 300 iterations, extra print"
     wandb.run.save()
     env_name = "Pendulum-v0"
     
@@ -31,11 +31,11 @@ if __name__ == "__main__":
     wandb.config.tau = 0.005
     wandb.config.train_start = 400
     wandb.config.episodes = 5
-    wandb.config.num = 3
-    wandb.config.epochs = 3
+    wandb.config.num = 1
+    wandb.config.epochs = 300
 
-    wandb.config.actor = {'layer1': 128, 'layer2' : 128}
-    wandb.config.critic = {'state1': 256, 'state2': 128, 'actor1': 128, 'cat1': 64}
+    wandb.config.actor = {'layer1': 64, 'layer2' : 64}
+    wandb.config.critic = {'state1': 128, 'state2': 64, 'actor1': 64, 'cat1': 32}
     
     ray.init()
 

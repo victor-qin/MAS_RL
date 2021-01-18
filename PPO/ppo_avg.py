@@ -17,11 +17,11 @@ if __name__ == "__main__":
     except: pass
     
     ####configurations
-    group_temp = "011321-test"
+    group_temp = "011521-1_16"
     wandb.init(group=group_temp, project="rl-ppo-federated", mode="online")
     wandb.run.name = wandb.run.id
     wandb.run.tags = [group_temp]
-    wandb.run.notes ="pendulum testing new evaluation"
+    wandb.run.notes ="pendulum testing 1 bots 16/8 layers, 300 epochs"
     wandb.run.save()
     env_name = "Pendulum-v0"
     
@@ -35,8 +35,8 @@ if __name__ == "__main__":
     wandb.config.intervals = 3
     
     wandb.config.episodes = 5
-    wandb.config.num = 3
-    wandb.config.epochs = 3
+    wandb.config.num = 1
+    wandb.config.epochs = 300
 
     wandb.config.actor = {'layer1': 16, 'layer2' : 16}
     wandb.config.critic = {'layer1': 16, 'layer2' : 16, 'layer3': 8}
