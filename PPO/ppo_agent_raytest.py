@@ -212,7 +212,6 @@ class Agent(object):
         episode_reward, done = 0, False
 
         state = self.env.reset()
-        renders = []
         while not done:
 
             action = self.actor.get_action(state) 

@@ -37,6 +37,15 @@ if __name__ == "__main__":
     wandb.config.actor = {'layer1': 64, 'layer2' : 64}
     wandb.config.critic = {'state1': 128, 'state2': 64, 'actor1': 64, 'cat1': 32}
     
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--jobid', type=str, default=None)
+    args = parser.parse_args()
+    print("args", args.jobid)
+
+    if(args.jobid != None):
+        wandb.config.jobid = args.jobid
+        print("wandb", wandb.config.jobid)
+    
     ray.init()
 
     # main run    

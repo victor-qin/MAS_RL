@@ -8,6 +8,7 @@ from pathlib import Path
 
 from ppo_agent_raytest import Agent, writeout
 import ray
+import argparse
 
 tf.keras.backend.set_floatx('float64')
 
@@ -41,6 +42,15 @@ if __name__ == "__main__":
     wandb.config.actor = {'layer1': 16, 'layer2' : 16}
     wandb.config.critic = {'layer1': 16, 'layer2' : 16, 'layer3': 8}
     
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--jobid', type=str, default=None)
+    args = parser.parse_args()
+    print("args", args.jobid)
+
+    if(args.jobid != None):
+        wandb.config.jobid = args.jobid
+        print("wandb", wandb.config.jobid)
+
     # print(wandb.config)
     ray.init()
     
@@ -79,11 +89,12 @@ if __name__ == "__main__":
 
         for j in range(len(agents)):
             rewards.append(ray.get(jobs[j]))
-            
+            print(rewards[-1])
             for k in range(len(rewards[j])):
                 wandb.log({'Reward' + str(j): rewards[j][k]})
 
         rewards = np.array(rewards)
+        print(rewards)
         reward = np.average(rewards[:, -1])
 
         print('Epoch={}\t Average reward={}'.format(z, reward))
@@ -129,6 +140,11 @@ if __name__ == "__main__":
             jobs.append(agents[j].critic_set_weights.remote(critic_avg))
 
         ray.wait(jobs, num_returns = 2 * len(agents), timeout=5000)
+        print("actor_avg")
+        print(actor_avg[1])
+        ag = agents[-1].actor_get_weights.remote()
+        print("agent last")
+        print(ray.get(ag)[1])
         # for k in range(len(jobs)):
         #     ray.get(jobs[k])
 
