@@ -18,11 +18,11 @@ if __name__ == "__main__":
     except: pass
     
     ####configurations
-    group_temp = "011521-1_16"
+    group_temp = "012121-1_32"
     wandb.init(group=group_temp, project="rl-ppo-federated", mode="online")
     wandb.run.name = wandb.run.id
     wandb.run.tags = [group_temp]
-    wandb.run.notes ="pendulum testing 1 bots 16/8 layers, 300 epochs"
+    wandb.run.notes ="pendulum testing 1 bots 32/16 layers, 300 epochs"
     wandb.run.save()
     env_name = "Pendulum-v0"
     
@@ -39,8 +39,8 @@ if __name__ == "__main__":
     wandb.config.num = 1
     wandb.config.epochs = 300
 
-    wandb.config.actor = {'layer1': 16, 'layer2' : 16}
-    wandb.config.critic = {'layer1': 16, 'layer2' : 16, 'layer3': 8}
+    wandb.config.actor = {'layer1': 32, 'layer2' : 32}
+    wandb.config.critic = {'layer1': 32, 'layer2' : 32, 'layer3': 16}
     
     parser = argparse.ArgumentParser()
     parser.add_argument('--jobid', type=str, default=None)
