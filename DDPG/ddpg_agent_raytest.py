@@ -11,6 +11,15 @@ import ray
 
 tf.keras.backend.set_floatx('float64')
 
+# function for writing models out
+def writeout(agents, index, title = None):
+    
+    Path(wandb.run.dir + "/" + "epoch-" + str(index) + "/").mkdir(parents=True, exist_ok=True)
+    
+    for j in range(len(agents)):
+        ref = agents[j].save_weights.remote(index, wandb.run.dir, wandb.run.id, title)
+        ray.get(ref)
+
 @ray.remote
 class Agent(object):
 
@@ -197,7 +206,6 @@ class Agent(object):
             state = self.env.reset()
             bg_noise = np.zeros(self.action_dim)
             while not done:    # run till done by hitting the action that's done
-#                 self.env.render()
    
                 action = self.actor.get_action(state)   # pick an action, add noise, clip the action           
                 noise = self.ou_noise(bg_noise, dim=self.action_dim)
@@ -221,12 +229,29 @@ class Agent(object):
         else:
             return rewards
 
+    def evaluate(self):
+        episode_reward, done = 0, False
+
+        state = self.env.reset()
+        while not done:
+            action = self.actor.get_action(state) 
+            action = np.clip(action, -self.action_bound, self.action_bound)
+
+            next_state, reward, done, _ = self.env.step(action)
+            episode_reward += reward
+            state = next_state
+            
+        return episode_reward
 
     # functions for returning things
-    def save_weights(self, index, dir, id):
+    def save_weights(self, index, dir, id, title=None):
         print(dir)
-        self.actor.model.save_weights(dir + "/" + "epoch-" + str(index) + "/" + id + "-agent{}-actor".format(self.iden), save_format="h5")
-        self.critic.model.save_weights(dir + "/" + "epoch-" + str(index) + "/" + id + "-agent{}-critic".format(self.iden), save_format="h5")
+        mark = title
+        if title == None:
+            mark = self.iden
+
+        self.actor.model.save_weights(dir + "/" + "epoch-" + str(index) + "/" + id + "-agent{}-actor".format(mark), save_format="h5")
+        self.critic.model.save_weights(dir + "/" + "epoch-" + str(index) + "/" + id + "-agent{}-critic".format(mark), save_format="h5")
 
     def actor_get_weights(self):
         return self.actor.model.get_weights()
@@ -240,16 +265,18 @@ class Agent(object):
     # function for setting things
     def actor_set_weights(self, avg):
         self.actor.model.set_weights(avg)
+        return
 
     def critic_set_weights(self, avg):
         self.critic.model.set_weights(avg)
+        return
 
-# function for writing models out
-def writeout(agents, index, title = None):
+# # function for writing models out
+# def writeout(agents, index, title = None):
     
-    Path(wandb.run.dir + "/" + "epoch-" + str(index) + "/").mkdir(parents=True, exist_ok=True)
+#     Path(wandb.run.dir + "/" + "epoch-" + str(index) + "/").mkdir(parents=True, exist_ok=True)
     
-    for j in range(len(agents)):
+#     for j in range(len(agents)):
 
-        ref = agents[j].save_weights.remote(index, wandb.run.dir, wandb.run.id)
-        ray.get(ref)
+#         ref = agents[j].save_weights.remote(index, wandb.run.dir, wandb.run.id)
+#         ray.get(ref)

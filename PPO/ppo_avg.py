@@ -1,12 +1,14 @@
 import wandb
 import tensorflow as tf
 import gym
+import gym_quadrotor
 import numpy as np
 
 from pathlib import Path
 
 from ppo_agent_raytest import Agent, writeout
 import ray
+import argparse
 
 tf.keras.backend.set_floatx('float64')
 
@@ -16,13 +18,13 @@ if __name__ == "__main__":
     except: pass
     
     ####configurations
-    group_temp = "test-ray"
+    group_temp = "011521-1_16"
     wandb.init(group=group_temp, project="rl-ppo-federated", mode="online")
     wandb.run.name = wandb.run.id
     wandb.run.tags = [group_temp]
-    wandb.run.notes ="PPO running on quarter complexity in the neural net,1-bot small net, 30 simul run for 400"
+    wandb.run.notes ="pendulum testing 1 bots 16/8 layers, 300 epochs"
     wandb.run.save()
-    env_name = 'Pendulum-v0'
+    env_name = "Pendulum-v0"
     
     wandb.config.gamma = 0.99
     wandb.config.update_interval = 5
@@ -34,12 +36,21 @@ if __name__ == "__main__":
     wandb.config.intervals = 3
     
     wandb.config.episodes = 5
-    wandb.config.num = 3
-    wandb.config.epochs = 10
+    wandb.config.num = 1
+    wandb.config.epochs = 300
 
     wandb.config.actor = {'layer1': 16, 'layer2' : 16}
     wandb.config.critic = {'layer1': 16, 'layer2' : 16, 'layer3': 8}
     
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--jobid', type=str, default=None)
+    args = parser.parse_args()
+    print("args", args.jobid)
+
+    if(args.jobid != None):
+        wandb.config.jobid = args.jobid
+        print("wandb", wandb.config.jobid)
+
     # print(wandb.config)
     ray.init()
     
@@ -66,6 +77,7 @@ if __name__ == "__main__":
     writeout(agents, 0)
         
     # start the training
+    max_reward = -np.inf
     for z in range(wandb.config.epochs):
 
         rewards = []
@@ -77,15 +89,16 @@ if __name__ == "__main__":
 
         for j in range(len(agents)):
             rewards.append(ray.get(jobs[j]))
-            
+            print(rewards[-1])
             for k in range(len(rewards[j])):
                 wandb.log({'Reward' + str(j): rewards[j][k]})
 
         rewards = np.array(rewards)
+        print(rewards)
         reward = np.average(rewards[:, -1])
-        print('Epoch={}\t Average reward={}'.format(z, reward))
-        wandb.log({'batch': z, 'Epoch': reward})
 
+        print('Epoch={}\t Average reward={}'.format(z, reward))
+        wandb.log({'batch': z, 'Epoch-critic': reward})
 
         # get the average - actor and critic
         critic_avg = []
@@ -119,16 +132,43 @@ if __name__ == "__main__":
 
         if z % 50 == 0:
             writeout(agents, z)
-            
+        
+        jobs = []       
         # set the average
-        for j in range(N):
-            agents[j].actor_set_weights.remote(actor_avg)
-            agents[j].critic_set_weights.remote(critic_avg)
+        for j in range(len(agents)):
+            jobs.append(agents[j].actor_set_weights.remote(actor_avg))
+            jobs.append(agents[j].critic_set_weights.remote(critic_avg))
+
+        ray.wait(jobs, num_returns = 2 * len(agents), timeout=5000)
+        print("actor_avg")
+        print(actor_avg[1])
+        ag = agents[-1].actor_get_weights.remote()
+        print("agent last")
+        print(ray.get(ag)[1])
+        # for k in range(len(jobs)):
+        #     ray.get(jobs[k])
+
+        rewards = []
+        jobs = []
+        for j in range(len(agents)):
+            jobs.append(agents[j].evaluate.remote())
+
+        for j in range(len(agents)):
+            rewards.append(ray.get(jobs[j]))
+
+        rewards = np.array(rewards)
+        reward = np.average(rewards)
+        print('Epoch={}\t Average reward={}'.format(z, reward))
+        wandb.log({'batch': z, 'Epoch-avg': reward})
+
+        if reward > max_reward:
+            max_reward = reward
+            writeout([agents[0]], z, "MAX")
 
         if z % 50 == 0:
             writeout([agents[0]], z, "average")
             
-    writeout(agents, wandb.config.epochs)
+    writeout([agents[0]], wandb.config.epochs, "average")
 
     # wrtie things out
 #     for j in range(N):

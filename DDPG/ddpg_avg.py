@@ -1,7 +1,8 @@
 import wandb
-import gym
 import numpy as np
-# from ddpg_agent import ReplayBuffer, Actor, Critic, Agent, writeout
+import gym
+import gym_quadrotor
+
 from ddpg_agent_raytest import Agent, writeout
 import tensorflow as tf
 import ray
@@ -14,14 +15,14 @@ if __name__ == "__main__":
     except: pass
     
     ####configurations
-    group_temp = "test-ray"
+    group_temp = "011421-1_64"
     # id = wandb.util.generate_id()
-    wandb.init(group=group_temp, project="rl-ddpg-federated", mode="online", resume = "allow")
+    wandb.init(group=group_temp, project="rl-ddpg-federated", mode="online")
     wandb.run.name = wandb.run.id
     wandb.run.tags = [group_temp]
-    wandb.run.notes = "running on half node and also 5 bots, 30 groupings"
+    wandb.run.notes = "pendulum, DDPG with 1 bots 128/64/32 layers, 300 iterations, extra print"
     wandb.run.save()
-    env_name = 'Pendulum-v0'
+    env_name = "Pendulum-v0"
     
     wandb.config.gamma = 0.99
     wandb.config.actor_lr = 0.001
@@ -30,11 +31,20 @@ if __name__ == "__main__":
     wandb.config.tau = 0.005
     wandb.config.train_start = 400
     wandb.config.episodes = 5
-    wandb.config.num = 3
-    wandb.config.epochs = 10
+    wandb.config.num = 1
+    wandb.config.epochs = 300
 
-    wandb.config.actor = {'layer1': 128, 'layer2' : 128}
-    wandb.config.critic = {'state1': 256, 'state2': 128, 'actor1': 128, 'cat1': 64}
+    wandb.config.actor = {'layer1': 64, 'layer2' : 64}
+    wandb.config.critic = {'state1': 128, 'state2': 64, 'actor1': 64, 'cat1': 32}
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--jobid', type=str, default=None)
+    args = parser.parse_args()
+    print("args", args.jobid)
+
+    if(args.jobid != None):
+        wandb.config.jobid = args.jobid
+        print("wandb", wandb.config.jobid)
     
     ray.init()
 
@@ -62,6 +72,7 @@ if __name__ == "__main__":
     writeout(agents, 0)
         
     # start the training
+    max_reward = -np.inf
     for z in range(wandb.config.epochs):
 
         rewards = []
@@ -79,8 +90,9 @@ if __name__ == "__main__":
 
         rewards = np.array(rewards)
         reward = np.average(rewards[:, -1])
+
         print('Epoch={}\t Average reward={}'.format(z, reward))
-        wandb.log({'batch': z, 'Epoch': reward})
+        wandb.log({'batch': z, 'Epoch-critic': reward})
 
         # get the average - actor and critic
         critic_avg = []
@@ -114,10 +126,38 @@ if __name__ == "__main__":
         if z % 50 == 0:
             writeout(agents, z)
 
-        # set the average
-        for j in range(N):
-            agents[j].actor_set_weights.remote(actor_avg)
-            agents[j].critic_set_weights.remote(critic_avg)
+        # set the average and evaluate
+        jobs = []
+        for j in range(len(agents)):
+            jobs.append(agents[j].actor_set_weights.remote(actor_avg))
+            jobs.append(agents[j].critic_set_weights.remote(critic_avg))
+        
+        ray.wait(jobs, num_returns = 2 * len(agents), timeout = 5000)
+        
+        # for k in range(len(jobs)):
+        #     ray.get(jobs[k])
+
+        # while True:
+        #     _, unready = ray.wait(jobs)
+        #     print(unready)
+        #     if len(unready) == 0:
+        #         break
+        rewards = []
+        jobs = []
+        for j in range(len(agents)):
+            jobs.append(agents[j].evaluate.remote())
+
+        for j in range(len(agents)):
+            rewards.append(ray.get(jobs[j]))
+
+        rewards = np.array(rewards)
+        reward = np.average(rewards)
+        print('Epoch={}\t Average reward={}'.format(z, reward))
+        wandb.log({'batch': z, 'Epoch-avg': reward})
+
+        if reward > max_reward:
+            max_reward = reward
+            writeout([agents[0]], z, "MAX")
 
         if z % 50 == 0:
             writeout([agents[0]], z, "average")

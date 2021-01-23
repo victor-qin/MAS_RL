@@ -10,6 +10,16 @@ import ray
 
 tf.keras.backend.set_floatx('float64')
 
+# function for writing models out
+def writeout(agents, index, title = None):
+    
+    Path(wandb.run.dir + "/" + "epoch-" + str(index) + "/").mkdir(parents=True, exist_ok=True)
+    
+    for j in range(len(agents)):
+        ref = agents[j].save_weights.remote(index, wandb.run.dir, wandb.run.id, title)
+        ray.get(ref)
+
+
 @ray.remote
 class Agent(object):
 
@@ -151,15 +161,13 @@ class Agent(object):
             episode_reward, done = 0, False
 
             state = self.env.reset()
-
             while not done:
-                # self.env.render()
+                
                 log_old_policy, action = self.actor.get_action(state)
-
                 next_state, reward, done, _ = self.env.step(action)
 
                 state = np.reshape(state, [1, self.state_dim])
-                action = np.reshape(action, [1, 1])
+                action = np.reshape(action, [1, self.action_dim])
                 next_state = np.reshape(next_state, [1, self.state_dim])
                 reward = np.reshape(reward, [1, 1])
                 log_old_policy = np.reshape(log_old_policy, [1, 1])
@@ -193,19 +201,40 @@ class Agent(object):
 
                 episode_reward += reward[0][0]
                 state = next_state[0]
-
+            
             print('Bot{}, EP{} EpisodeReward={}'.format(self.iden, ep, episode_reward))
             output.append(episode_reward)
             # wandb.log({'Reward' + str(self.iden): episode_reward})
         
         return output
 
-    # functions for returning things
-    def save_weights(self, index, dir, id):
-        print(dir)
-        self.actor.model.save_weights(dir + "/" + "epoch-" + str(index) + "/" + id + "-agent{}-actor".format(self.iden), save_format="h5")
-        self.critic.model.save_weights(dir + "/" + "epoch-" + str(index) + "/" + id + "-agent{}-critic".format(self.iden), save_format="h5")
+    def evaluate(self):
+        episode_reward, done = 0, False
 
+        state = self.env.reset()
+        while not done:
+
+            action = self.actor.get_action(state) 
+            action = np.clip(action, -self.action_bound, self.action_bound)
+
+            _, action = self.actor.get_action(state)
+            next_state, reward, done, _ = self.env.step(action)
+
+            episode_reward += reward
+            state = next_state
+
+        return episode_reward
+
+    # functions for returning things
+    def save_weights(self, index, dir, id, title = None):
+        print(dir)
+        mark = title
+        if title == None:
+            mark = self.iden
+
+        self.actor.model.save_weights(dir + "/" + "epoch-" + str(index) + "/" + id + "-agent{}-actor".format(mark), save_format="h5")
+        self.critic.model.save_weights(dir + "/" + "epoch-" + str(index) + "/" + id + "-agent{}-critic".format(mark), save_format="h5")
+    
     def actor_get_weights(self):
         return self.actor.model.get_weights()
 
@@ -218,16 +247,8 @@ class Agent(object):
     # function for setting things
     def actor_set_weights(self, avg):
         self.actor.model.set_weights(avg)
+        return
 
     def critic_set_weights(self, avg):
         self.critic.model.set_weights(avg)
-
-# function for writing models out
-def writeout(agents, index, title = None):
-    
-    Path(wandb.run.dir + "/" + "epoch-" + str(index) + "/").mkdir(parents=True, exist_ok=True)
-    
-    for j in range(len(agents)):
-
-        ref = agents[j].save_weights.remote(index, wandb.run.dir, wandb.run.id)
-        ray.get(ref)
+        return

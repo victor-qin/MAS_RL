@@ -1,4 +1,6 @@
 batch_logs/
 *wandb*
 *~
-*__pycache__
+*__pycache__/
+*.py[cod]
+*.so
