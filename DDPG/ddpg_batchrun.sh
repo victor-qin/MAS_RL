@@ -9,4 +9,4 @@
 
 module load Anaconda3/5.0.1-fasrc01 ; conda info --envs ;
 source activate es100
-python3 ddpg_avg.py
+python3 ddpg_avg.py --jobid "${SLURM_JOBID}_${SLURM_ARRAY_TASK_ID}"
