@@ -158,7 +158,7 @@ if __name__ == "__main__":
         if reward > max_reward:
             max_reward = reward
             writeout([agents[0]], z, "MAX")
-
+        
         if z % 50 == 0:
             writeout([agents[0]], z, "average")
             

@@ -1,14 +1,23 @@
 import wandb
 import tensorflow as tf
 import gym
-import gym_quadrotor
+
 import numpy as np
 
 from pathlib import Path
 
 from ppo_agent_raytest import Agent, writeout
 import ray
+from ray.tune import register_env
 import argparse
+# from stable_baselines3.common.env_checker import check_env
+
+# import sys
+# sys.path.append('../')
+
+# from gym_pybullet_drones.envs.single_agent_rl.FlyThruGateAviary import FlyThruGateAviary
+# from gym_pybullet_drones.utils.Logger import Logger
+# from gym_pybullet_drones.utils.utils import sync
 
 tf.keras.backend.set_floatx('float64')
 
@@ -19,11 +28,12 @@ if __name__ == "__main__":
     
     ####configurations
     group_temp = "012121-1_32"
-    wandb.init(group=group_temp, project="rl-ppo-federated", mode="online")
+    wandb.init(group=group_temp, project="rl-ppo-federated", mode="offline")
     wandb.run.name = wandb.run.id
     wandb.run.tags = [group_temp]
     wandb.run.notes ="pendulum testing 1 bots 32/16 layers, 300 epochs"
     wandb.run.save()
+    # env_name = "flythrugate-aviary-v0"
     env_name = "Pendulum-v0"
     
     wandb.config.gamma = 0.99
@@ -53,6 +63,7 @@ if __name__ == "__main__":
 
     # print(wandb.config)
     ray.init()
+    # register_env("takeoff-aviary-v0", lambda _: TakeoffAviary())
     
     # main run    
     N = wandb.config.num
@@ -67,6 +78,11 @@ if __name__ == "__main__":
     # set up the agent
     for i in range(N):
         env_t = gym.make(env_name)
+
+        check_env(env_t,
+                warn=True,
+                skip_render_check=True
+                )
 
         temp = Agent.remote(configuration, env_t, i)
         ref = temp.iden_get.remote()
@@ -169,7 +185,7 @@ if __name__ == "__main__":
             writeout([agents[0]], z, "average")
             
     writeout([agents[0]], wandb.config.epochs, "average")
-
+    
     # wrtie things out
 #     for j in range(N):
 #         agents[j].actor.model.save_weights(wandb.run.dir + "/" + wandb.run.id + "-agent{}-actor".format(j))        
