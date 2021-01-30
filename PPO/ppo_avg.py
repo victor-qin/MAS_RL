@@ -1,7 +1,7 @@
 import wandb
 import tensorflow as tf
 import gym
-import gym_quadrotor
+#import gym_quadrotor
 import numpy as np
 
 from pathlib import Path
@@ -18,13 +18,13 @@ if __name__ == "__main__":
     except: pass
     
     ####configurations
-    group_temp = "012121-1_32"
+    group_temp = "012921-32_64"
+    env_name = "Pendulum-v0"
     wandb.init(group=group_temp, project="rl-ppo-federated", mode="online")
     wandb.run.name = wandb.run.id
-    wandb.run.tags = [group_temp]
-    wandb.run.notes ="pendulum testing 1 bots 32/16 layers, 300 epochs"
+    wandb.run.tags = [group_temp, "32-bot", "actor-64x2", "critic-64x2/32", "avg-normal", env_name]
+    wandb.run.notes ="pendulum testing 32 bots 64/32 layers, 300 epochs"
     wandb.run.save()
-    env_name = "Pendulum-v0"
     
     wandb.config.gamma = 0.99
     wandb.config.update_interval = 5
@@ -36,11 +36,11 @@ if __name__ == "__main__":
     wandb.config.intervals = 3
     
     wandb.config.episodes = 5
-    wandb.config.num = 1
+    wandb.config.num = 32
     wandb.config.epochs = 300
 
-    wandb.config.actor = {'layer1': 32, 'layer2' : 32}
-    wandb.config.critic = {'layer1': 32, 'layer2' : 32, 'layer3': 16}
+    wandb.config.actor = {'layer1': 64, 'layer2' : 64}
+    wandb.config.critic = {'layer1': 64, 'layer2' : 64, 'layer3': 32}
     
     parser = argparse.ArgumentParser()
     parser.add_argument('--jobid', type=str, default=None)
@@ -52,7 +52,7 @@ if __name__ == "__main__":
         print("wandb", wandb.config.jobid)
 
     # print(wandb.config)
-    ray.init()
+    ray.init(include_dashboard=False)
     
     # main run    
     N = wandb.config.num
