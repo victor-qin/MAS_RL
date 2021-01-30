@@ -1,11 +1,13 @@
 import wandb
 import numpy as np
 import gym
-import gym_quadrotor
+
+from pathlib import Path
 
 from ddpg_agent_raytest import Agent, writeout
 import tensorflow as tf
 import ray
+import argparse
 
 tf.keras.backend.set_floatx('float64')
 
@@ -134,14 +136,6 @@ if __name__ == "__main__":
         
         ray.wait(jobs, num_returns = 2 * len(agents), timeout = 5000)
         
-        # for k in range(len(jobs)):
-        #     ray.get(jobs[k])
-
-        # while True:
-        #     _, unready = ray.wait(jobs)
-        #     print(unready)
-        #     if len(unready) == 0:
-        #         break
         rewards = []
         jobs = []
         for j in range(len(agents)):

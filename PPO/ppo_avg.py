@@ -1,7 +1,6 @@
 import wandb
 import tensorflow as tf
 import gym
-#import gym_quadrotor
 import numpy as np
 
 from pathlib import Path
@@ -95,7 +94,7 @@ if __name__ == "__main__":
 
         rewards = np.array(rewards)
         print(rewards)
-        reward = np.average(rewards[:, -1])
+        rewa    rd = np.average(rewards[:, -1])
 
         print('Epoch={}\t Average reward={}'.format(z, reward))
         wandb.log({'batch': z, 'Epoch-critic': reward})
@@ -140,11 +139,7 @@ if __name__ == "__main__":
             jobs.append(agents[j].critic_set_weights.remote(critic_avg))
 
         ray.wait(jobs, num_returns = 2 * len(agents), timeout=5000)
-        print("actor_avg")
-        print(actor_avg[1])
-        ag = agents[-1].actor_get_weights.remote()
-        print("agent last")
-        print(ray.get(ag)[1])
+
         # for k in range(len(jobs)):
         #     ray.get(jobs[k])
 
