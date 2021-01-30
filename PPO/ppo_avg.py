@@ -6,10 +6,12 @@ import numpy as np
 from pathlib import Path
 
 from ppo_agent_raytest import Agent, writeout
+from averaging import normal_avg, max_avg, softmax_avg, relu_avg
 import ray
 import argparse
 
 tf.keras.backend.set_floatx('float64')
+
 
 if __name__ == "__main__":
     
@@ -18,11 +20,8 @@ if __name__ == "__main__":
     
     ####configurations
     group_temp = "012121-1_32"
-    wandb.init(group=group_temp, project="rl-ppo-federated", mode="online")
-    wandb.run.name = wandb.run.id
-    wandb.run.tags = [group_temp]
-    wandb.run.notes ="pendulum testing 1 bots 32/16 layers, 300 epochs"
-    wandb.run.save()
+    wandb.init(group=group_temp, project="rl-ppo-federated", mode="offline")
+    
     env_name = "Pendulum-v0"
     
     wandb.config.gamma = 0.99
@@ -35,12 +34,14 @@ if __name__ == "__main__":
     wandb.config.intervals = 3
     
     wandb.config.episodes = 5
-    wandb.config.num = 1
+    wandb.config.num = 3
     wandb.config.epochs = 300
 
     wandb.config.actor = {'layer1': 32, 'layer2' : 32}
     wandb.config.critic = {'layer1': 32, 'layer2' : 32, 'layer3': 16}
     
+    wandb.config.average = "softmax"    # normal, max, softmax, relu, target
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--jobid', type=str, default=None)
     args = parser.parse_args()
@@ -49,6 +50,11 @@ if __name__ == "__main__":
     if(args.jobid != None):
         wandb.config.jobid = args.jobid
         print("wandb", wandb.config.jobid)
+
+    wandb.run.name = wandb.run.id
+    wandb.run.notes ="pendulum testing 1 bots 32/16 layers, 300 epochs"
+    wandb.run.tags = [group_temp]
+    wandb.run.save()
 
     # print(wandb.config)
     ray.init()
@@ -92,42 +98,21 @@ if __name__ == "__main__":
             for k in range(len(rewards[j])):
                 wandb.log({'Reward' + str(j): rewards[j][k]})
 
-        rewards = np.array(rewards)
-        print(rewards)
-        rewa    rd = np.average(rewards[:, -1])
+        rewards = np.array(rewards, dtype=object)
+        reward = np.average(rewards[:, -1])
 
         print('Epoch={}\t Average reward={}'.format(z, reward))
         wandb.log({'batch': z, 'Epoch-critic': reward})
 
         # get the average - actor and critic
-        critic_avg = []
-        actor_avg = []
-
-        ag0 = ray.get(agents[0].actor_get_weights.remote())
-        for i in range(len(ag0)):
-
-            actor_t = ag0[i]
-
-            for j in range(1, wandb.config.num):
-                ref = agents[j].actor_get_weights.remote()
-                actor_t = actor_t + ray.get(ref)[i]
-
-            actor_t = actor_t / wandb.config.num
-            actor_avg.append(actor_t)
-
-
-        ag0 = ray.get(agents[0].critic_get_weights.remote())
-        for i in range(len(ag0)):
-
-            critic_t = ag0[i]
-
-            for j in range(1, wandb.config.num):
-                ref = agents[j].critic_get_weights.remote()
-                critic_t = critic_t + ray.get(ref)[i]
-
-            critic_t = critic_t / wandb.config.num
-            critic_avg.append(critic_t)
-
+        if wandb.config.average == "max":
+            critic_avg, actor_avg = max_avg(agents, rewards[:, -1])
+        elif wandb.config.average == "softmax":
+            critic_avg, actor_avg = softmax_avg(agents, rewards[:, -1])
+        elif wandb.config.average == "relu":
+            critic_avg, actor_avg = relu_avg(agents, rewards[:, -1])
+        else:
+            critic_avg, actor_avg = normal_avg(agents)
 
         if z % 50 == 0:
             writeout(agents, z)
@@ -151,7 +136,7 @@ if __name__ == "__main__":
         for j in range(len(agents)):
             rewards.append(ray.get(jobs[j]))
 
-        rewards = np.array(rewards)
+        rewards = np.array(rewards, dtype=object)
         reward = np.average(rewards)
         print('Epoch={}\t Average reward={}'.format(z, reward))
         wandb.log({'batch': z, 'Epoch-avg': reward})
