@@ -227,7 +227,7 @@ class Agent(object):
 
     # functions for returning things
     def save_weights(self, index, dir, id, title = None):
-        print(dir)
+
         mark = title
         if title == None:
             mark = self.iden

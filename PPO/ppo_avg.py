@@ -96,7 +96,6 @@ if __name__ == "__main__":
 
         for j in range(len(agents)):
             rewards.append(ray.get(jobs[j]))
-            print(rewards[-1])
             for k in range(len(rewards[j])):
                 wandb.log({'Reward' + str(j): rewards[j][k]})
 
@@ -127,9 +126,6 @@ if __name__ == "__main__":
 
         ray.wait(jobs, num_returns = 2 * len(agents), timeout=5000)
 
-        # for k in range(len(jobs)):
-        #     ray.get(jobs[k])
-
         rewards = []
         jobs = []
         for j in range(len(agents)):
@@ -151,10 +147,5 @@ if __name__ == "__main__":
             writeout([agents[0]], z, "average")
             
     writeout([agents[0]], wandb.config.epochs, "average")
-
-    # wrtie things out
-#     for j in range(N):
-#         agents[j].actor.model.save_weights(wandb.run.dir + "/" + wandb.run.id + "-agent{}-actor".format(j))        
-#         agents[j].critic.model.save_weights(wandb.run.dir + "/" + wandb.run.id + "-agent{}-critic".format(j))
     
     wandb.finish()
