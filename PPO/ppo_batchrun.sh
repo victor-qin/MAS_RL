@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -n 8                # Number of cores (-n)
+#SBATCH -n 4               # Number of cores (-n)
 #SBATCH -N 1               # Ensure that all cores are on one Node (-N)
 #SBATCH -t 0-24:00          # Runtime in D-HH:MM, minimum of 10 minutes
 #SBATCH -p shared   # Partition to submit to

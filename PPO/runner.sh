@@ -1,7 +1,7 @@
 #!/bin/bash
-for i in {1..10}
+for i in {1..25}
 do 
 	sbatch ppo_batchrun.sh
-	sleep 45
+	sleep 30
 done
 
