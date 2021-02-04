@@ -251,14 +251,11 @@ class Agent(object):
             self.actor.model.set_weights(avg)
         else:
 
-            print(avg[-1])
             actor_weights = self.actor.model.get_weights()
-            print(actor_weights[-1])
 
             for i in range(len(actor_weights)):
                 actor_weights[i] = kappa * avg[i] + (1 - kappa) * actor_weights[i]
 
-            print(actor_weights[-1])
             self.actor.model.set_weights(actor_weights)
 
         return
