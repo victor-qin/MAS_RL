@@ -19,7 +19,7 @@ if __name__ == "__main__":
     except: pass
     
     ####configurations
-    group_temp = "020121-16_32"
+    group_temp = "020421-8_32"
     env_name = "Pendulum-v0"
     wandb.init(group=group_temp, project="rl-ppo-federated", mode="online")
     
@@ -33,17 +33,17 @@ if __name__ == "__main__":
     wandb.config.intervals = 3
     
     wandb.config.episodes = 5
-    wandb.config.num = 3
+    wandb.config.num = 8
     wandb.config.epochs = 300
 
-    wandb.config.actor = {'layer1': 32, 'layer2' : 32}
-    wandb.config.critic = {'layer1': 32, 'layer2' : 32, 'layer3': 16}
+    wandb.config.actor = {'layer1': 64, 'layer2' : 64}
+    wandb.config.critic = {'layer1': 64, 'layer2' : 64, 'layer3': 32}
     
     wandb.config.average = "softmax"    # normal, max, softmax, relu, target
 
     wandb.run.name = wandb.run.id
-    wandb.run.tags = [group_temp, "16-bot", "actor-32x2", "critic-32x2/16", "avg-normal", env_name]
-    wandb.run.notes ="pendulum testing 16 bots 32/16 layers, 300 epochs, relu"
+    wandb.run.tags = [group_temp, "8-bot", "actor-64x2", "critic-64x2/32", "avg-softmax2", env_name]
+    wandb.run.notes ="pendulum testing 8 bots 64/32 layers, 300 epochs, softmax w/ stdev"
 
 
     parser = argparse.ArgumentParser()
