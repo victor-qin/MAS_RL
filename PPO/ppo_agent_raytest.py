@@ -245,10 +245,35 @@ class Agent(object):
         return self.iden
 
     # function for setting things
-    def actor_set_weights(self, avg):
-        self.actor.model.set_weights(avg)
+    def actor_set_weights(self, avg, kappa=1):
+
+        if(kappa == 1):
+            self.actor.model.set_weights(avg)
+        else:
+
+            print(avg[-1])
+            actor_weights = self.actor.model.get_weights()
+            print(actor_weights[-1])
+
+            for i in range(len(actor_weights)):
+                actor_weights[i] = kappa * avg[i] + (1 - kappa) * actor_weights[i]
+
+            print(actor_weights[-1])
+            self.actor.model.set_weights(actor_weights)
+
         return
 
-    def critic_set_weights(self, avg):
-        self.critic.model.set_weights(avg)
+    def critic_set_weights(self, avg, kappa=1):
+
+        if(kappa == 1):
+            self.critic.model.set_weights(avg)
+        else:
+            critic_weights = self.critic.model.get_weights()
+
+            for i in range(len(critic_weights)):
+                critic_weights[i] = kappa * avg[i] + (1 - kappa) * critic_weights[i]
+
+            self.critic.model.set_weights(critic_weights)
+
+        # self.critic.model.set_weights(avg)
         return
