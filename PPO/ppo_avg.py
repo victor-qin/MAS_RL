@@ -19,13 +19,9 @@ if __name__ == "__main__":
     except: pass
     
     ####configurations
-    group_temp = "012921-32_64"
+    group_temp = "020121-16_32"
     env_name = "Pendulum-v0"
     wandb.init(group=group_temp, project="rl-ppo-federated", mode="online")
-    wandb.run.name = wandb.run.id
-    wandb.run.tags = [group_temp, "32-bot", "actor-64x2", "critic-64x2/32", "avg-normal", env_name]
-    wandb.run.notes ="pendulum testing 32 bots 64/32 layers, 300 epochs"
-    wandb.run.save()
     
     wandb.config.gamma = 0.99
     wandb.config.update_interval = 5
@@ -37,13 +33,18 @@ if __name__ == "__main__":
     wandb.config.intervals = 3
     
     wandb.config.episodes = 5
-    wandb.config.num = 32
+    wandb.config.num = 3
     wandb.config.epochs = 300
 
-    wandb.config.actor = {'layer1': 64, 'layer2' : 64}
-    wandb.config.critic = {'layer1': 64, 'layer2' : 64, 'layer3': 32}
+    wandb.config.actor = {'layer1': 32, 'layer2' : 32}
+    wandb.config.critic = {'layer1': 32, 'layer2' : 32, 'layer3': 16}
     
     wandb.config.average = "softmax"    # normal, max, softmax, relu, target
+
+    wandb.run.name = wandb.run.id
+    wandb.run.tags = [group_temp, "16-bot", "actor-32x2", "critic-32x2/16", "avg-normal", env_name]
+    wandb.run.notes ="pendulum testing 16 bots 32/16 layers, 300 epochs, relu"
+
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--jobid', type=str, default=None)
@@ -53,11 +54,6 @@ if __name__ == "__main__":
     if(args.jobid != None):
         wandb.config.jobid = args.jobid
         print("wandb", wandb.config.jobid)
-
-    wandb.run.name = wandb.run.id
-    wandb.run.notes ="pendulum testing 1 bots 32/16 layers, 300 epochs"
-    wandb.run.tags = [group_temp]
-    wandb.run.save()
 
     # print(wandb.config)
     ray.init(include_dashboard=False)
@@ -97,7 +93,6 @@ if __name__ == "__main__":
 
         for j in range(len(agents)):
             rewards.append(ray.get(jobs[j]))
-            print(rewards[-1])
             for k in range(len(rewards[j])):
                 wandb.log({'Reward' + str(j): rewards[j][k]})
 
@@ -111,8 +106,10 @@ if __name__ == "__main__":
         if wandb.config.average == "max":
             critic_avg, actor_avg = max_avg(agents, rewards[:, -1])
         elif wandb.config.average == "softmax":
+            print("softmax")
             critic_avg, actor_avg = softmax_avg(agents, rewards[:, -1])
         elif wandb.config.average == "relu":
+            print("relu")
             critic_avg, actor_avg = relu_avg(agents, rewards[:, -1])
         else:
             critic_avg, actor_avg = normal_avg(agents)
@@ -127,9 +124,6 @@ if __name__ == "__main__":
             jobs.append(agents[j].critic_set_weights.remote(critic_avg))
 
         ray.wait(jobs, num_returns = 2 * len(agents), timeout=5000)
-
-        # for k in range(len(jobs)):
-        #     ray.get(jobs[k])
 
         rewards = []
         jobs = []
@@ -152,10 +146,5 @@ if __name__ == "__main__":
             writeout([agents[0]], z, "average")
             
     writeout([agents[0]], wandb.config.epochs, "average")
-
-    # wrtie things out
-#     for j in range(N):
-#         agents[j].actor.model.save_weights(wandb.run.dir + "/" + wandb.run.id + "-agent{}-actor".format(j))        
-#         agents[j].critic.model.save_weights(wandb.run.dir + "/" + wandb.run.id + "-agent{}-critic".format(j))
     
     wandb.finish()
