@@ -272,5 +272,4 @@ class Agent(object):
 
             self.critic.model.set_weights(critic_weights)
 
-        # self.critic.model.set_weights(avg)
         return
