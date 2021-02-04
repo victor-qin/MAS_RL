@@ -59,9 +59,14 @@ def max_avg(agents, end_rewards):
 def softmax_avg(agents, end_rewards):
 
     avg_reward = np.average(end_rewards)
-    e_adv = np.exp(((end_rewards - avg_reward) / (np.max(end_rewards) - np.min(end_rewards))).astype(float))
+    deviation = np.sqrt(np.average(np.power((end_rewards - avg_reward), 2)))
+    e_adv_r = np.exp(((end_rewards - avg_reward) / (np.max(end_rewards) - np.min(end_rewards))).astype(float))
+    e_adv_s = np.exp(((end_rewards - avg_reward) / (deviation)).astype(float))
 
-    weights = e_adv / e_adv.sum()
+    print("range-based weighting: ", e_adv_r / e_adv_r.sum())
+    
+    weights = e_adv_s / e_adv_s.sum()
+    print("standev-based weighting: ", weights)
 
     critic_avg = []
     actor_avg = []

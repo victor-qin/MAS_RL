@@ -33,13 +33,13 @@ if __name__ == "__main__":
     wandb.config.intervals = 3
     
     wandb.config.episodes = 5
-    wandb.config.num = 16
+    wandb.config.num = 3
     wandb.config.epochs = 300
 
     wandb.config.actor = {'layer1': 32, 'layer2' : 32}
     wandb.config.critic = {'layer1': 32, 'layer2' : 32, 'layer3': 16}
     
-    wandb.config.average = "normal"    # normal, max, softmax, relu, target
+    wandb.config.average = "softmax"    # normal, max, softmax, relu, target
 
     wandb.run.name = wandb.run.id
     wandb.run.tags = [group_temp, "16-bot", "actor-32x2", "critic-32x2/16", "avg-normal", env_name]
