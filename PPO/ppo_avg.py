@@ -9,6 +9,7 @@ from ppo_agent_raytest import Agent, writeout
 from averaging import normal_avg, max_avg, softmax_avg, relu_avg
 import ray
 import argparse
+import time
 
 tf.keras.backend.set_floatx('float64')
 
@@ -21,7 +22,7 @@ if __name__ == "__main__":
     ####configurations
     group_temp = "020421-8_32"
     env_name = "Pendulum-v0"
-    wandb.init(group=group_temp, project="rl-ppo-federated", mode="online")
+    wandb.init(group=group_temp, project="rl-ppo-federated", mode="offline")
     
     wandb.config.gamma = 0.99
     wandb.config.update_interval = 5
@@ -40,6 +41,7 @@ if __name__ == "__main__":
     wandb.config.critic = {'layer1': 64, 'layer2' : 64, 'layer3': 32}
     
     wandb.config.average = "softmax"    # normal, max, softmax, relu, target
+    wandb.config.kappa = 0.75      # range 1 (all avg) to 0 (no avg)
 
     wandb.run.name = wandb.run.id
     wandb.run.tags = [group_temp, "8-bot", "actor-64x2", "critic-64x2/32", "avg-softmax2", env_name]
@@ -74,6 +76,9 @@ if __name__ == "__main__":
 
         temp = Agent.remote(configuration, env_t, i)
         ref = temp.iden_get.remote()
+
+        # time.sleep(100)
+
         ray.get(ref)
         agents.append(temp)
 
@@ -120,8 +125,8 @@ if __name__ == "__main__":
         jobs = []       
         # set the average
         for j in range(len(agents)):
-            jobs.append(agents[j].actor_set_weights.remote(actor_avg))
-            jobs.append(agents[j].critic_set_weights.remote(critic_avg))
+            jobs.append(agents[j].actor_set_weights.remote(actor_avg, wandb.config.kappa))
+            jobs.append(agents[j].critic_set_weights.remote(critic_avg, wandb.config.kappa))
 
         ray.wait(jobs, num_returns = 2 * len(agents), timeout=5000)
 
