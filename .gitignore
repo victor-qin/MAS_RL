@@ -4,3 +4,6 @@ batch_logs/
 *__pycache__/
 *.py[cod]
 *.so
+.vscode/
+stats_processing/
+

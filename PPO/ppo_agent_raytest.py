@@ -7,6 +7,13 @@ import numpy as np
 
 from pathlib import Path
 import ray
+from ray.tune import register_env
+
+import sys
+sys.path.append('./')
+from gym_pybullet_drones.envs.single_agent_rl.FlyThruGateAviary import FlyThruGateAviary
+from gym_pybullet_drones.utils.Logger import Logger
+from gym_pybullet_drones.utils.utils import sync
 
 tf.keras.backend.set_floatx('float64')
 
@@ -111,10 +118,14 @@ class Agent(object):
     def __init__(self, config, env, iden = 0):
         self.config = config
 
+        # register_env("flythrugate-aviary-v0", lambda _: FlyThruGateAviary())
+
+        # self.env = gym.make(env)
         self.env = env
         self.state_dim = self.env.observation_space.shape[0]
         self.action_dim = self.env.action_space.shape[0]
-        self.action_bound = self.env.action_space.high[0]
+        # self.action_bound = self.env.action_space.high[0]
+        self.action_bound = self.env.action_space.high
         self.std_bound = [1e-2, 1.0]
 
         self.actor_opt = tf.keras.optimizers.Adam(self.config.actor_lr)
@@ -160,6 +171,7 @@ class Agent(object):
 
             episode_reward, done = 0, False
 
+            print(self.env)
             state = self.env.reset()
             while not done:
                 
@@ -208,26 +220,29 @@ class Agent(object):
         
         return output
 
-    def evaluate(self):
+    def evaluate(self, render = False):
         episode_reward, done = 0, False
 
-        state = self.env.reset()
+        state = self.env.reset(isTrack = True)
         while not done:
 
-            action = self.actor.get_action(state) 
-            action = np.clip(action, -self.action_bound, self.action_bound)
-
+            # action = self.actor.get_action(state) 
+            
             _, action = self.actor.get_action(state)
+            # action = np.clip(action, -self.action_bound, self.action_bound)
             next_state, reward, done, _ = self.env.step(action)
 
             episode_reward += reward
             state = next_state
 
+        if(render):
+            self.env.render()
+
         return episode_reward
 
     # functions for returning things
     def save_weights(self, index, dir, id, title = None):
-        print(dir)
+
         mark = title
         if title == None:
             mark = self.iden
@@ -245,10 +260,31 @@ class Agent(object):
         return self.iden
 
     # function for setting things
-    def actor_set_weights(self, avg):
-        self.actor.model.set_weights(avg)
+    def actor_set_weights(self, avg, kappa=1):
+
+        if(kappa == 1):
+            self.actor.model.set_weights(avg)
+        else:
+
+            actor_weights = self.actor.model.get_weights()
+
+            for i in range(len(actor_weights)):
+                actor_weights[i] = kappa * avg[i] + (1 - kappa) * actor_weights[i]
+
+            self.actor.model.set_weights(actor_weights)
+
         return
 
-    def critic_set_weights(self, avg):
-        self.critic.model.set_weights(avg)
+    def critic_set_weights(self, avg, kappa=1):
+
+        if(kappa == 1):
+            self.critic.model.set_weights(avg)
+        else:
+            critic_weights = self.critic.model.get_weights()
+
+            for i in range(len(critic_weights)):
+                critic_weights[i] = kappa * avg[i] + (1 - kappa) * critic_weights[i]
+
+            self.critic.model.set_weights(critic_weights)
+
         return
