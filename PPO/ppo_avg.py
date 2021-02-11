@@ -20,7 +20,7 @@ if __name__ == "__main__":
     except: pass
     
     ####configurations
-    group_temp = "020521-8_64-softmax2"
+    group_temp = "021021-8_64-epsilon0.2"
     env_name = "Pendulum-v0"
     wandb.init(group=group_temp, project="rl-ppo-federated", mode="online")
     
@@ -33,8 +33,8 @@ if __name__ == "__main__":
     wandb.config.lmbda = 0.95
     wandb.config.intervals = 3
     
-    wandb.config.episodes = 1
-    wandb.config.num = 2
+    wandb.config.episodes = 5
+    wandb.config.num = 8
     wandb.config.epochs = 300
 
     wandb.config.actor = {'layer1': 64, 'layer2' : 64}
@@ -42,11 +42,11 @@ if __name__ == "__main__":
     
     wandb.config.average = "epsilon"    # normal, max, softmax, relu, epsilon
     wandb.config.kappa = 1      # range 1 (all avg) to 0 (no avg)
-    wandb.config.epsilon = 0.1  # range from 1 to 0 (all random to never) - epsilon greedy
+    wandb.config.epsilon = 0.2  # range from 1 to 0 (all random to never) - epsilon greedy
 
     wandb.run.name = wandb.run.id
-    wandb.run.tags = [group_temp, "8-bot", "actor-64x2", "critic-64x2/32", "avg-softmax2", env_name]
-    wandb.run.notes ="testing second softmax method, pendulum testing 8 bots 64/32 layers, 300 epochs, softmax2"
+    wandb.run.tags = [group_temp, "8-bot", "actor-64x2", "critic-64x2/32", "avg-epsilon", env_name]
+    wandb.run.notes ="testing epsilon methods, pendulum testing 8 bots 64/32 layers, 300 epochs, epsilon 0.2"
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--jobid', type=str, default=None)
