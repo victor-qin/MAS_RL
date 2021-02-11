@@ -20,9 +20,9 @@ if __name__ == "__main__":
     except: pass
     
     ####configurations
-    group_temp = "020421-8_32"
+    group_temp = "020521-8_64-softmax2"
     env_name = "Pendulum-v0"
-    wandb.init(group=group_temp, project="rl-ppo-federated", mode="offline")
+    wandb.init(group=group_temp, project="rl-ppo-federated", mode="online")
     
     wandb.config.gamma = 0.99
     wandb.config.update_interval = 5
@@ -46,8 +46,7 @@ if __name__ == "__main__":
 
     wandb.run.name = wandb.run.id
     wandb.run.tags = [group_temp, "8-bot", "actor-64x2", "critic-64x2/32", "avg-softmax2", env_name]
-    wandb.run.notes ="pendulum testing 8 bots 64/32 layers, 300 epochs, softmax w/ stdev"
-
+    wandb.run.notes ="testing second softmax method, pendulum testing 8 bots 64/32 layers, 300 epochs, softmax2"
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--jobid', type=str, default=None)

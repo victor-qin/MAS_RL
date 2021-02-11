@@ -1,6 +1,7 @@
 import numpy as np
 import ray
 import random
+import wandb
 
 def assignment(agents, weights):
 
@@ -59,10 +60,13 @@ def softmax_avg(agents, end_rewards):
     e_adv_r = np.exp(((end_rewards - avg_reward) / (np.max(end_rewards) - np.min(end_rewards))).astype(float))
     e_adv_s = np.exp(((end_rewards - avg_reward) / (deviation)).astype(float))
 
-    print("range-based weighting: ", e_adv_r / e_adv_r.sum())
-    
+    weights_test = e_adv_r / e_adv_r.sum()
+    print("range-based weighting: ", weights_test)
+    wandb.log({'range-avg*n': (np.max(weights_test) - np.min(weights_test)) * len(agents)})
+
     weights = e_adv_s / e_adv_s.sum()
     print("standev-based weighting: ", weights)
+    wandb.log({'stdev-avg*n': (np.max(weights) - np.min(weights)) * len(agents)})
 
     return assignment(agents, weights)
 
