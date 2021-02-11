@@ -63,36 +63,10 @@ class GymQuad(gym.Env):
 
         numTimeStep = int(self.Tf/self.Ts+1)  
         self.numTimeStep = numTimeStep
-        # self.t_all          = np.zeros(numTimeStep)
-        # self.s_all          = np.zeros([numTimeStep, len(self.quad.state)])
-        # self.pos_all        = np.zeros([numTimeStep, len(self.quad.pos)])
-        # self.vel_all        = np.zeros([numTimeStep, len(self.quad.vel)])
-        # self.quat_all       = np.zeros([numTimeStep, len(self.quad.quat)])
-        # self.omega_all      = np.zeros([numTimeStep, len(self.quad.omega)])
-        # self.euler_all      = np.zeros([numTimeStep, len(self.quad.euler)])
-        # self.w_cmd_all      = np.zeros([numTimeStep, self.action_space.shape[0]])
-        # self.wMotor_all     = np.zeros([numTimeStep, len(self.quad.wMotor)])
-        # self.thr_all        = np.zeros([numTimeStep, len(self.quad.thr)])
-        # self.tor_all        = np.zeros([numTimeStep, len(self.quad.tor)])
-        # self.rewards        = np.zeros([numTimeStep, 1])
-
-        # self.t_all          = []
-        # self.s_all          = []
-        # self.pos_all        = []
-        # self.vel_all        = []
-        # self.quat_all       = []
-        # self.omega_all      = []
-        # self.euler_all      = []
-        # self.w_cmd_all      = []
-        # self.wMotor_all     = []
-        # self.thr_all        = []
-        # self.tor_all        = []
-        # self.rewards        = []
 
         self.init_data()
         self.isTrack = isTrack
-        # if(self.isTrack):
-        #     self.track(0, np.zeros(self.action_space.shape[0]), 0)  # YEESH need a fix?
+
 
     def init_data(self):
         numTimeStep = self.numTimeStep
@@ -110,24 +84,7 @@ class GymQuad(gym.Env):
         self.tor_all        = np.array([self.quad.tor], dtype=np.float64)
         self.rewards        = np.array(0.0, dtype=np.float64)
 
-        # self.t_all          = np.empty(1, dtype=np.float64)
-        # self.s_all          = np.empty(len(self.quad.state), dtype=np.float64)
-        # self.pos_all        = np.empty(len(self.quad.pos), dtype=np.float64)
-        # self.vel_all        = np.empty(len(self.quad.vel), dtype=np.float64)
-        # self.quat_all       = np.empty(len(self.quad.quat), dtype=np.float64)
-        # self.omega_all      = np.empty(len(self.quad.omega), dtype=np.float64)
-        # self.euler_all      = np.empty(len(self.quad.euler), dtype=np.float64)
-        # self.w_cmd_all      = np.empty(self.action_space.shape[0], dtype=np.float64)
-        # self.wMotor_all     = np.empty(len(self.quad.wMotor), dtype=np.float64)
-        # self.thr_all        = np.empty(len(self.quad.thr), dtype=np.float64)
-        # self.tor_all        = np.empty(len(self.quad.tor), dtype=np.float64)
-        # self.rewards        = np.empty(1, dtype=np.float64)
-
     def track(self, i, action, reward):
-
-        # print(self.t)
-        # print(self.s_all)
-        # self.t_all.flags.writeable = True
 
         self.t_all = np.append(self.t_all, self.t)
         self.s_all = np.vstack((self.s_all, self.quad.state))
@@ -140,21 +97,7 @@ class GymQuad(gym.Env):
         self.wMotor_all = np.vstack((self.wMotor_all, self.quad.wMotor))
         self.thr_all = np.vstack((self.thr_all, self.quad.thr))
         self.tor_all = np.vstack((self.tor_all, self.quad.tor))
-
-        # print(self.w_cmd_all)
-
-        # print(self.tor_all)
-        # print(self.rewards)
-        # print(reward)
         self.rewards = np.append(self.rewards, reward)
-
-        # self.t_all.append(self.t)
-        # self.s_all.append(self.quad.state)
-        # self.pos_all.append(self.quad.pos)
-        # self.vel_all.append(self.quad.vel)
-        # self.quat_all.append(self.quad.quat)
-        # self.omega_all.append(self.quad.omega)
-        # self.euler_all.append(self.quad.euler)
 
     def set_target(self, target):
 
@@ -219,12 +162,8 @@ class GymQuad(gym.Env):
         waypoints = np.stack((self.init_pos, self.target[0:3]))
         ifsave = 0
 
-        # self.rewards = self.rewards[1:]
-        # self.w_cmd_all = self.w_cmd_all[1:, :]
-        
 
         utils.makeGymFigures(self.quad.params, np.array(self.t_all), np.array(self.pos_all), np.array(self.vel_all), np.array(self.quat_all), np.array(self.omega_all), np.array(self.euler_all), np.array(self.w_cmd_all), np.array(self.wMotor_all), np.array(self.thr_all), np.array(self.tor_all), np.array(self.rewards))
-        # ani = utils.sameAxisAnimation(t_all, traj.wps, pos_all, quat_all, sDes_traj_all, Ts, quad.params, traj.xyzType, traj.yawType, ifsave)
         ani = utils.gymSameAxisAnimation(np.array(self.t_all), waypoints, np.array(self.pos_all), np.array(self.quat_all), self.Ts, self.quad.params, 1, 1, ifsave)
         plt.show()
 
