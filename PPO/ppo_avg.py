@@ -33,15 +33,16 @@ if __name__ == "__main__":
     wandb.config.lmbda = 0.95
     wandb.config.intervals = 3
     
-    wandb.config.episodes = 5
-    wandb.config.num = 8
+    wandb.config.episodes = 1
+    wandb.config.num = 2
     wandb.config.epochs = 300
 
     wandb.config.actor = {'layer1': 64, 'layer2' : 64}
     wandb.config.critic = {'layer1': 64, 'layer2' : 64, 'layer3': 32}
     
-    wandb.config.average = "softmax"    # normal, max, softmax, relu, target
-    wandb.config.kappa = 0.75      # range 1 (all avg) to 0 (no avg)
+    wandb.config.average = "epsilon"    # normal, max, softmax, relu, epsilon
+    wandb.config.kappa = 1      # range 1 (all avg) to 0 (no avg)
+    wandb.config.epsilon = 0.1  # range from 1 to 0 (all random to never) - epsilon greedy
 
     wandb.run.name = wandb.run.id
     wandb.run.tags = [group_temp, "8-bot", "actor-64x2", "critic-64x2/32", "avg-softmax2", env_name]
@@ -116,6 +117,9 @@ if __name__ == "__main__":
         elif wandb.config.average == "relu":
             print("relu")
             critic_avg, actor_avg = relu_avg(agents, rewards[:, -1])
+        elif wandb.config.average == "relu":
+            print("relu")
+            critic_avg, actor_avg = epsilon_avg(agents, rewards[:, -1], wandb.config.epsilon)
         else:
             critic_avg, actor_avg = normal_avg(agents)
 
