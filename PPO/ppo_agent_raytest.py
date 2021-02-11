@@ -7,13 +7,12 @@ import numpy as np
 
 from pathlib import Path
 import ray
-from ray.tune import register_env
 
 import sys
 sys.path.append('./')
-from gym_pybullet_drones.envs.single_agent_rl.FlyThruGateAviary import FlyThruGateAviary
-from gym_pybullet_drones.utils.Logger import Logger
-from gym_pybullet_drones.utils.utils import sync
+#from gym_pybullet_drones.envs.single_agent_rl.FlyThruGateAviary import FlyThruGateAviary
+#from gym_pybullet_drones.utils.Logger import Logger
+#from gym_pybullet_drones.utils.utils import sync
 
 tf.keras.backend.set_floatx('float64')
 

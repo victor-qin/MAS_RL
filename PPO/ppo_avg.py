@@ -8,20 +8,23 @@ from pathlib import Path
 from ppo_agent_raytest import Agent, writeout
 from averaging import normal_avg, max_avg, softmax_avg, relu_avg
 import ray
-from ray.tune import register_env
 import argparse
-from stable_baselines3.common.env_checker import check_env
 
+import os
+# print(os.getcwd())
 import sys
-sys.path.append('./')
-sys.path.append('Quadcopter_SimCon/Simulation/')
+#file_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
+#file_dir = os.getcwd()
+
+sys.path.append('../')
+sys.path.append('../Quadcopter_SimCon/Simulation/')
 import time
 
 # from gym_pybullet_drones.envs.single_agent_rl.FlyThruGateAviary import FlyThruGateAviary
 # from gym_pybullet_drones.utils.Logger import Logger
 # from gym_pybullet_drones.utils.utils import sync
 
-from gym_quad import GymQuad
+#from Quadcopter_Simcon.Simulation.gym_quad import GymQuad
 
 tf.keras.backend.set_floatx('float64')
 
@@ -32,13 +35,7 @@ if __name__ == "__main__":
     except: pass
     
     ####configurations
-    group_temp = "012121-1_32"
-    wandb.init(group=group_temp, project="rl-ppo-federated", mode="offline")
-    wandb.run.name = wandb.run.id
-    wandb.run.tags = [group_temp]
-    wandb.run.notes ="pendulum testing 1 bots 32/16 layers, 300 epochs"
-    wandb.run.save()
-    # env_name = "flythrugate-aviary-v0"
+    group_temp = "021121_3-64-quadfly"
     # env_name = "Pendulum-v0"
     env_name = 'gym_quad-v0'
     wandb.init(group=group_temp, project="rl-ppo-federated", mode="offline")
@@ -52,9 +49,9 @@ if __name__ == "__main__":
     wandb.config.lmbda = 0.95
     wandb.config.intervals = 3
     
-    wandb.config.episodes = 1
+    wandb.config.episodes = 5
     wandb.config.num = 3
-    wandb.config.epochs = 300
+    wandb.config.epochs = 20
 
     wandb.config.actor = {'layer1': 64, 'layer2' : 64}
     wandb.config.critic = {'layer1': 64, 'layer2' : 64, 'layer3': 32}
@@ -63,8 +60,8 @@ if __name__ == "__main__":
     wandb.config.kappa = 1      # range 1 (all avg) to 0 (no avg)
 
     wandb.run.name = wandb.run.id
-    wandb.run.tags = [group_temp, "8-bot", "actor-64x2", "critic-64x2/32", "avg-softmax2", env_name]
-    wandb.run.notes ="pendulum testing 8 bots 64/32 layers, 300 epochs, softmax w/ stdev"
+    wandb.run.tags = [group_temp, "8-bot", "actor-64x2", "critic-64x2/32", "avg-normal", env_name]
+    wandb.run.notes ="trying new quadcopter env, testing 3 bots 64/32 layers, 20 epochs, normal"
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--jobid', type=str, default=None)
