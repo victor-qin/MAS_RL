@@ -53,7 +53,7 @@ if __name__ == "__main__":
     wandb.config.intervals = 3
     
     wandb.config.episodes = 1
-    wandb.config.num = 2
+    wandb.config.num = 3
     wandb.config.epochs = 300
 
     wandb.config.actor = {'layer1': 64, 'layer2' : 64}
@@ -96,20 +96,12 @@ if __name__ == "__main__":
 
     # set up the agent
     for i in range(N):
-        target = np.array([0, 0, 1, 0, 0, 0], dtype=np.float32)
+        target = np.array([0, 0, 1 + i, 0, 0, 0], dtype=np.float32)
         env_t = gym.make(env_name)
         env_t.set_target(target)
 
-        # check_env(env_t,
-        #         warn=True,
-        #         skip_render_check=True
-        #         )
-
         temp = Agent.remote(configuration, env_t, i)
-        # temp = Agent.remote(configuration, env_name, i)
         ref = temp.iden_get.remote()
-
-        # time.sleep(100)
 
         ray.get(ref)
         agents.append(temp)
