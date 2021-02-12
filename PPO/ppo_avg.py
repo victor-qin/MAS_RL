@@ -12,9 +12,27 @@ from ray.tune import register_env
 import argparse
 from stable_baselines3.common.env_checker import check_env
 
+import os
 import sys
-sys.path.append('./')
-sys.path.append('Quadcopter_SimCon/Simulation/')
+# print(os.path.abspath(__file__))
+# print( os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# sys.path.append('../')
+
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+print(parent_dir)
+
+# other_dir = os.path.join(parent_dir, base_filename + "." + filename_suffix)
+# print(parent_dir + "/Quadcopter_SimCon/Simulation/")
+os.environ["PYTHONPATH"] = parent_dir + ":" + os.environ.get("PYTHONPATH", "")
+dir_name = os.path.join(parent_dir, '/Quadcopter_SimCon/Simulation/')
+print(dir_name)
+sys.path.append(parent_dir)
+sys.path.append(parent_dir + '/Quadcopter_SimCon/Simulation/')
+# os.environ["PYTHONPATH"] = parent_dir + "\Quadcopter_SimCon\Simulation" + ":" + os.environ.get("PYTHONPATH", "")
+
+print(sys.path)
+
 import time
 
 # from gym_pybullet_drones.envs.single_agent_rl.FlyThruGateAviary import FlyThruGateAviary
@@ -22,6 +40,7 @@ import time
 # from gym_pybullet_drones.utils.utils import sync
 
 from gym_quad import GymQuad
+import Quadcopter_SimCon
 
 tf.keras.backend.set_floatx('float64')
 
@@ -53,7 +72,7 @@ if __name__ == "__main__":
     wandb.config.intervals = 3
     
     wandb.config.episodes = 1
-    wandb.config.num = 3
+    wandb.config.num = 1
     wandb.config.epochs = 300
 
     wandb.config.actor = {'layer1': 64, 'layer2' : 64}
@@ -89,10 +108,11 @@ if __name__ == "__main__":
 
     configuration = Struct(**wandb.config.as_dict())
 
-    gym.register(
-        id="gym_quad-v0",
-        entry_point = 'Quadcopter_SimCon.Simulation.gym_quad:GymQuad',
-    )
+    print(sys.path)
+    # gym.register(
+    #     id="gym_quad-v0",
+    #     entry_point = 'Quadcopter_SimCon.Simulation.gym_quad:GymQuad',
+    # )
 
     # set up the agent
     for i in range(N):
