@@ -18,18 +18,15 @@ import sys
 # sys.path.append('../')
 
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-print(parent_dir)
 
 # other_dir = os.path.join(parent_dir, base_filename + "." + filename_suffix)
 # print(parent_dir + "/Quadcopter_SimCon/Simulation/")
 os.environ["PYTHONPATH"] = parent_dir + ":" + os.environ.get("PYTHONPATH", "")
 dir_name = os.path.join(parent_dir, '/Quadcopter_SimCon/Simulation/')
-print(dir_name)
+
 sys.path.append(parent_dir)
 sys.path.append(parent_dir + '/Quadcopter_SimCon/Simulation/')
 # os.environ["PYTHONPATH"] = parent_dir + "\Quadcopter_SimCon\Simulation" + ":" + os.environ.get("PYTHONPATH", "")
-
-print(sys.path)
 
 import time
 
@@ -64,7 +61,7 @@ if __name__ == "__main__":
     wandb.config.intervals = 3
     
     wandb.config.episodes = 5
-    wandb.config.num = 3
+    wandb.config.num = 1
     wandb.config.epochs = 20
 
     wandb.config.actor = {'layer1': 64, 'layer2' : 64}
@@ -100,7 +97,6 @@ if __name__ == "__main__":
 
     configuration = Struct(**wandb.config.as_dict())
 
-    print(sys.path)
     # gym.register(
     #     id="gym_quad-v0",
     #     entry_point = 'Quadcopter_SimCon.Simulation.gym_quad:GymQuad',
@@ -108,7 +104,7 @@ if __name__ == "__main__":
 
     # set up the agent
     for i in range(N):
-        target = np.array([0, 0, 1 + i, 0, 0, 0], dtype=np.float32)
+        target = np.array([0, 0, 1, 0, 0, 0], dtype=np.float32)
         env_t = gym.make(env_name)
         env_t.set_target(target)
 

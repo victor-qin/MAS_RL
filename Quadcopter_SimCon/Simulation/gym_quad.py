@@ -72,6 +72,9 @@ class GymQuad(gym.Env):
         self.init_data()
         self.isTrack = isTrack
 
+        self.pos_err_const = 1
+        self.spin_err_const = 0.05
+        self.vel_err_const = 0.05
 
     def init_data(self):
         numTimeStep = self.numTimeStep
@@ -111,16 +114,20 @@ class GymQuad(gym.Env):
     # function for calculating reward based on target position
     # input: position and orientation (7,)
     # output: reward for that state, a scalar (1,)
-    def _get_reward(self, posori):
+    def _get_reward(self, state):
 
         # linear cost implementation for now
-        pos_err = np.linalg.norm(posori[0:3] - self.target[0:3])
-        YPR = utils.quatToYPR_ZYX(posori[3:7])  # translate into euler
-        eul_err = np.linalg.norm(YPR[::-1] - self.target[3:6])
+        pos_err = np.linalg.norm(state[0:3] - self.target[0:3])
+        spin_err = np.linalg.norm(state[10:13])
+        vel_err = np.linalg.norm(state[7:10])
+        # YPR = utils.quatToYPR_ZYX(state[3:7])  # translate into euler
+        # eul_err = np.linalg.norm(YPR[::-1] - self.target[3:6])
 
-        done = (pos_err < self.epsilon and eul_err < self.epsilon) or (self.t >= self.Tf)
+        done = (pos_err < self.epsilon) or (self.t >= self.Tf)
 
-        reward = pos_err + eul_err
+        reward = - (self.pos_err_const * pos_err +
+                    self.spin_err_const * spin_err + 
+                    self.vel_err_const * vel_err)
 
         return reward, done
 
@@ -133,7 +140,7 @@ class GymQuad(gym.Env):
         self._take_action(action)
         next_state = self.quad.state[0:13]
 
-        reward, done = self._get_reward(next_state[0:7])
+        reward, done = self._get_reward(next_state)
 
         info = {'answer' : 42}
 
@@ -149,7 +156,7 @@ class GymQuad(gym.Env):
         self.t = self.Ti
         # self.target = target
 
-        rand_pos = np.zeros(6)
+        rand_pos = np.random.normal(np.zeros(6), scale = 0.1)
         self._seed(rand_pos, isTrack)
         self.init_data()
 
