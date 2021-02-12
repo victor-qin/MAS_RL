@@ -5,9 +5,14 @@ import time
 import gym
 from gym import spaces
 
+import os
 import sys
-sys.path.append('./')
-sys.path.append('Quadcopter_SimCon/Simulation/')
+# print(os.getcwd())
+
+parent_dir = os.path.abspath(__file__)
+os.environ["PYTHONPATH"] = parent_dir + ":" + os.environ.get("PYTHONPATH", "")
+# sys.path.append('../../')
+# sys.path.append('../../Quadcopter_SimCon/Simulation/')
 
 # from trajectory import Trajectory
 # from ctrl import Control
