@@ -166,7 +166,7 @@ if __name__ == "__main__":
         rewards = []
         jobs = []
         for j in range(len(agents)):
-            jobs.append(agents[j].evaluate.remote(render=False))
+            jobs.append(agents[j].evaluate.remote(render=True))
 
         for j in range(len(agents)):
             rewards.append(ray.get(jobs[j]))
