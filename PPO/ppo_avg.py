@@ -39,7 +39,6 @@ import Quadcopter_SimCon
 
 tf.keras.backend.set_floatx('float64')
 
-
 if __name__ == "__main__":
     
     try: wandb.finish()
