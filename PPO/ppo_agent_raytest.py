@@ -27,7 +27,7 @@ class Agent(object):
 
         def __init__(self, state_dim, action_dim, action_bound, std_bound, config):
             self.config = config
-            self.target = tf.zeros((state_dim,))
+            self.target = tf.zeros((state_dim,), dtype=tf.float64)
             self.int_err = tf.zeros((state_dim,))
 
             self.state_dim = state_dim
@@ -40,13 +40,13 @@ class Agent(object):
         def get_action(self, state):
             state = np.reshape(state, [1, self.state_dim])
 
-            state_err = state - self.target
-            # print(state_err)
-            self.int_err += state_err
+            # state_err = state - self.target
+            # # print(state_err)
+            # self.int_err += state_err
             # print(self.int_err)
 
-            mu, std = self.model.predict([state_err, self.int_err])
-            # mu, std = self.model.predict(state)
+            # mu, std = self.model.predict([state_err, self.int_err])
+            mu, std = self.model.predict(state)
             action = np.random.normal(mu[0], std[0], size=self.action_dim)
             action = np.clip(action, -self.action_bound, self.action_bound)
             log_policy = self.log_pdf(mu, std, action)
@@ -62,14 +62,18 @@ class Agent(object):
 
         def create_model(self):
     
-            state_err = Input((self.state_dim,), dtype = tf.float64)
-            int_err = Input((self.state_dim,), dtype = tf.float64)
-            # state_err = Subtract(shape=(self.state_dim,))([state_input, self.target])
-            # state_err = Lambda(lambda x: x - self.target)(state_input)
-            porp_gain = Dense(self.action_dim, activation='linear')(state_err)
-            int_gain = Dense(self.action_dim, activation='linear')(int_err)
+            state_input = Input((self.state_dim,), dtype = tf.float64)
+            state_err = Lambda(lambda x: x - self.target)(state_input)
+            out_mu = Dense(self.action_dim, activation='linear')(state_err)
 
-            out_mu = Lambda(lambda x: x[0] + x[1])([porp_gain, int_gain])
+            # int_err = Input((self.state_dim,), dtype = tf.float64)
+            # state_err = Subtract(shape=(self.state_dim,))([state_input, self.target])
+
+
+
+            # porp_gain = Dense(self.action_dim, activation='linear')(state_err)
+            # int_gain = Dense(self.action_dim, activation='linear')(int_err)
+            # out_mu = Lambda(lambda x: x[0] + x[1])([porp_gain, int_gain])
             mu_output = Lambda(lambda x: x * self.action_bound)(out_mu)
             std_output = Dense(self.action_dim, activation='softplus')(state_err)
             # dense_1 = Dense(self.config.actor['layer1'], activation='relu')(state_input)
@@ -77,13 +81,7 @@ class Agent(object):
             # out_mu = Dense(self.action_dim, activation='tanh')(dense_2)
             # mu_output = Lambda(lambda x: x * self.action_bound)(out_mu)
             # std_output = Dense(self.action_dim, activation='softplus')(dense_2)
-            return tf.keras.models.Model([state_err, int_err], [mu_output, std_output])
-
-        # def create_intermediate_model(self):
-
-        #     state_input = Input((self.state_dim,), dtype = tf.float64)
-        #     state_err = Lambda(lambda x: x - self.target)(state_input)
-
+            return tf.keras.models.Model(state_input, [mu_output, std_output])
         
         def compute_loss(self, log_old_policy, log_new_policy, actions, gaes):
             ratio = tf.exp(log_new_policy - tf.stop_gradient(log_old_policy))
@@ -95,11 +93,11 @@ class Agent(object):
 
         def train(self, log_old_policy, states, actions, gaes):
             with tf.GradientTape() as tape:
-                state_err = state - self.target
-                # print(state_err)
-                self.int_err += state_err
-                mu, std = self.model([state_err, self.int_err], training=True)
-                # mu, std = self.model(states, training=True)
+                # state_err = state - self.target
+                # # print(state_err)
+                # self.int_err += state_err
+                # mu, std = self.model([state_err, self.int_err], training=True)
+                mu, std = self.model(states, training=True)
                 log_new_policy = self.log_pdf(mu, std, actions)
                 loss = self.compute_loss(
                     log_old_policy, log_new_policy, actions, gaes)
@@ -238,11 +236,13 @@ class Agent(object):
         
         return output
 
-    def evaluate(self):
+    def evaluate(self, render=False):
         episode_reward, done = 0, False
 
         state = self.env.reset()
         while not done:
+            if(render):
+                self.env.render()
 
             action = self.actor.get_action(state) 
             action = np.clip(action, -self.action_bound, self.action_bound)

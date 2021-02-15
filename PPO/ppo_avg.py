@@ -11,6 +11,8 @@ import ray
 import argparse
 import time
 
+from pendulum_v1 import PendulumEquilEnv
+
 tf.keras.backend.set_floatx('float64')
 
 
@@ -21,7 +23,7 @@ if __name__ == "__main__":
     
     ####configurations
     group_temp = "021021-8_64-epsilon0.2"
-    env_name = "Pendulum-v0"
+    env_name = "Pendulum-v1"
     wandb.init(group=group_temp, project="rl-ppo-federated", mode="offline")
     
     wandb.config.gamma = 0.99
@@ -64,6 +66,12 @@ if __name__ == "__main__":
     N = wandb.config.num
     agents = []
     
+    gym.envs.register(
+        id='Pendulum-v1',
+        entry_point='pendulum_v1:PendulumEquilEnv',
+        max_episode_steps=200
+    )  
+
     class Struct:
         def __init__(self, **entries):
             self.__dict__.update(entries)
@@ -136,7 +144,7 @@ if __name__ == "__main__":
         rewards = []
         jobs = []
         for j in range(len(agents)):
-            jobs.append(agents[j].evaluate.remote())
+            jobs.append(agents[j].evaluate.remote(render=True))
 
         for j in range(len(agents)):
             rewards.append(ray.get(jobs[j]))
