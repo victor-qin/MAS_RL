@@ -22,7 +22,7 @@ if __name__ == "__main__":
     ####configurations
     group_temp = "021021-8_64-epsilon0.2"
     env_name = "Pendulum-v0"
-    wandb.init(group=group_temp, project="rl-ppo-federated", mode="online")
+    wandb.init(group=group_temp, project="rl-ppo-federated", mode="offline")
     
     wandb.config.gamma = 0.99
     wandb.config.update_interval = 5
@@ -34,13 +34,13 @@ if __name__ == "__main__":
     wandb.config.intervals = 3
     
     wandb.config.episodes = 5
-    wandb.config.num = 8
-    wandb.config.epochs = 300
+    wandb.config.num = 1
+    wandb.config.epochs = 10
 
     wandb.config.actor = {'layer1': 64, 'layer2' : 64}
     wandb.config.critic = {'layer1': 64, 'layer2' : 64, 'layer3': 32}
     
-    wandb.config.average = "epsilon"    # normal, max, softmax, relu, epsilon
+    wandb.config.average = "normal"    # normal, max, softmax, relu, epsilon
     wandb.config.kappa = 1      # range 1 (all avg) to 0 (no avg)
     wandb.config.epsilon = 0.2  # range from 1 to 0 (all random to never) - epsilon greedy
 
