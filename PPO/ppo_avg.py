@@ -20,9 +20,19 @@ def main():
     except: pass
     
     ####configurations
+<<<<<<< Updated upstream
     group_temp = "021421_1-64-pend2-2"
     env_name = "Pendulum-v1"
+<<<<<<< Updated upstream
     wandb.init(group=group_temp, project="rl-ppo-federated", mode="online")
+=======
+    wandb.init(group=group_temp, project="rl-ppo-federated", mode="offline")
+=======
+    group_temp = "020521-8_64-softmax2"
+    env_name = "Pendulum-v0"
+    wandb.init(group=group_temp, project="rl-ppo-federated", mode="online")
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
     
     wandb.config.gamma = 0.99
     wandb.config.update_interval = 5
@@ -40,6 +50,7 @@ def main():
     wandb.config.actor = {'layer1': 64, 'layer2' : 64}
     wandb.config.critic = {'layer1': 64, 'layer2' : 64, 'layer3': 32}
     
+<<<<<<< Updated upstream
     wandb.config.average = "normal"    # normal, max, softmax, relu, epsilon
     wandb.config.kappa = 1      # range 1 (all avg) to 0 (no avg)
     wandb.config.epsilon = 0.2  # range from 1 to 0 (all random to never) - epsilon greedy
@@ -47,6 +58,14 @@ def main():
     wandb.run.name = wandb.run.id
     wandb.run.tags = [group_temp, "1-bot", "actor-64x2", "critic-64x2/32", "avg-normal", env_name]
     wandb.run.notes ="testing P controller on modded pend start, modded eval, deep critic 64/32 layers, 300 epochs"
+=======
+    wandb.config.average = "softmax"    # normal, max, softmax, relu, target
+    wandb.config.kappa = 1      # range 1 (all avg) to 0 (no avg)
+
+    wandb.run.name = wandb.run.id
+    wandb.run.tags = [group_temp, "8-bot", "actor-64x2", "critic-64x2/32", "avg-softmax2", env_name]
+    wandb.run.notes ="testing second softmax method, pendulum testing 8 bots 64/32 layers, 300 epochs, softmax2"
+>>>>>>> Stashed changes
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--jobid', type=str, default=None)
