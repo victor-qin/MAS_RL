@@ -32,7 +32,7 @@ def create_model():
 
 def get_action(state, action_bound):
     
-    k = -np.array([0.75, 0, 0])
+    k = -np.array([0.0, 0.3, 0])
 
     action = np.array([np.matmul(k, state)])
     action = np.clip(action, -action_bound, action_bound)
@@ -63,8 +63,10 @@ if __name__ == "__main__":
             env.render()
 
         action = get_action(state, action_bound)
+        print('action', action)
         # action = np.clip(action, -action_bound, action_bound)
         next_state, reward, done, _ = env.step(action)
+        print('state', next_state)
 
         episode_reward += reward
         state = next_state
