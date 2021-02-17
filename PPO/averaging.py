@@ -1,37 +1,48 @@
 import numpy as np
 import ray
-<<<<<<< Updated upstream
 import random
-=======
->>>>>>> Stashed changes
 import wandb
 
-def assignment(agents, weights):
+def assignment(agents, weights, ISRAY=True):
 
     critic_avg = []
     actor_avg = []
 
-    ag0 = ray.get(agents[0].actor_get_weights.remote())
+    if(ISRAY):
+        ag0 = ray.get(agents[0].actor_get_weights.remote())
+    else:
+        ag0 = agents[0].actor_get_weights()
     for i in range(len(ag0)):
 
         actor_t = weights[0] * ag0[i]
 
         for j in range(1, len(agents)):
-            ref = agents[j].actor_get_weights.remote()
-            actor_t = actor_t + weights[j] * ray.get(ref)[i]
+
+            if(ISRAY):
+                ref = agents[j].actor_get_weights.remote()
+                actor_t = actor_t + weights[j] * ray.get(ref)[i]
+            else:
+                actor_t = actor_t + weights[j] * agents[j].actor_get_weights()[i]
 
         actor_t = actor_t
         actor_avg.append(actor_t)
 
 
-    ag0 = ray.get(agents[0].critic_get_weights.remote())
+    if(ISRAY):
+        ag0 = ray.get(agents[0].critic_get_weights.remote())
+    else:
+        ag0 = agents[0].critic_get_weights()
     for i in range(len(ag0)):
 
         critic_t = weights[0] * ag0[i]
 
         for j in range(1, len(agents)):
-            ref = agents[j].critic_get_weights.remote()
-            critic_t = critic_t + weights[j] * ray.get(ref)[i]
+
+            if(ISRAY):
+                ref = agents[j].critic_get_weights.remote()
+                actor_t = actor_t + weights[j] * ray.get(ref)[i]
+            else:
+                actor_t = actor_t + weights[j] * agents[j].critic_get_weights()[i]
 
         critic_t = critic_t
         critic_avg.append(critic_t)

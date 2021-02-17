@@ -30,11 +30,16 @@ def create_model():
     mu_output = Lambda(lambda x: x * self.action_bound)(out_mu)
     std_output = Dense(self.action_dim, activation='softplus')(state_err)
 
-def get_action(state, action_bound):
+def get_action(state, action_bound, err):
     
-    k = -np.array([0.0, 0.3, 0])
+    k = -np.array([8, 0.1])
+    i = -np.array([0, 0.0])
 
-    action = np.array([np.matmul(k, state)])
+    cor_state = [np.arctan2(state[1], state[0]), state[2]]
+    action = np.array([np.matmul(k, cor_state)]) 
+    # + \
+        # np.matmul(i, cor_state)])
+    action = np.random.normal(action, 0.01, size=action.shape)
     action = np.clip(action, -action_bound, action_bound)
     print(action)
 
@@ -54,15 +59,19 @@ if __name__ == "__main__":
     
     # evaluation step
     action_bound = env.action_space.high[0]
-    render = False
+    render = True
     episode_reward, done = 0, False
 
     state = env.reset()
+    int_err = np.array([0, 0])
+    target = np.array([0,0])
     while not done:
         if(render):
             env.render()
 
-        action = get_action(state, action_bound)
+        cor_state = [np.arctan2(state[1], state[0]), state[2]]
+        err = cor_state - target
+        action = get_action(state, action_bound, err)
         print('action', action)
         # action = np.clip(action, -action_bound, action_bound)
         next_state, reward, done, _ = env.step(action)

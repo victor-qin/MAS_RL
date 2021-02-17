@@ -113,9 +113,6 @@ def main():
                     count += 1
                     time.sleep(1)
                     pass
-            if(count >= 10):
-                return 1
-
         else:
             temp = Agent(configuration, env_t, i)
 

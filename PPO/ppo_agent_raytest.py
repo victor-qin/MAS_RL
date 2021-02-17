@@ -1,6 +1,7 @@
 import wandb
 import tensorflow as tf
 from tensorflow.keras.layers import Input, Dense, Lambda, Subtract
+from tensorflow.keras.constraints import max_norm
 
 import gym
 import numpy as np
@@ -11,13 +12,16 @@ import ray
 tf.keras.backend.set_floatx('float64')
 
 # function for writing models out
-def writeout(agents, index, title = None):
+def writeout(agents, index, title = None, ISRAY=True):
     
     Path(wandb.run.dir + "/" + "epoch-" + str(index) + "/").mkdir(parents=True, exist_ok=True)
     
     for j in range(len(agents)):
-        ref = agents[j].save_weights.remote(index, wandb.run.dir, wandb.run.id, title)
-        ray.get(ref)
+        if(ISRAY):
+            ref = agents[j].save_weights.remote(index, wandb.run.dir, wandb.run.id, title)
+            ray.get(ref)
+        else:
+            agents[j].save_weights(index, wandb.run.dir, wandb.run.id, title)
 
 
 @ray.remote
@@ -27,7 +31,7 @@ class Agent(object):
 
         def __init__(self, state_dim, action_dim, action_bound, std_bound, config):
             self.config = config
-            self.target = tf.zeros((state_dim,), dtype=tf.float64)
+            self.target = tf.zeros(state_dim - 1, dtype=tf.float64)
             self.int_err = tf.zeros((state_dim,))
 
             self.state_dim = state_dim
@@ -38,13 +42,16 @@ class Agent(object):
 
             # print(self.model.summary())
             # print(self.model.get_layer(name='out_mu').get_weights())
-            # self.model.get_layer(name='out_mu').set_weights([np.array([[1.0], [0.0],[0.0]])])
+            self.model.get_layer(name='out_mu').set_weights([-np.array([[8.0],[0.1]])])
+            # print('original', self.model.get_layer(name='out_mu').get_weights())
 
             self.opt = tf.keras.optimizers.Adam(self.config.actor_lr)
 
         def get_action(self, state):
-            state = np.reshape(state, [1, self.state_dim])
-
+            # state = np.reshape(state[1:], [1, self.state_dim-1])
+            # print(np.arctan2(state[1], state[0]))
+            state = np.reshape([np.arctan2(state[1], state[0]), state[2]], [1, self.state_dim-1])
+            # action, _ = self.model.predict(state)
             # state_err = state - self.target
             # # print(state_err)
             # self.int_err += state_err
@@ -52,33 +59,44 @@ class Agent(object):
 
             # mu, std = self.model.predict([state_err, self.int_err])
             mu, std = self.model.predict(state)
-            action = np.random.normal(mu[0], std[0], size=self.action_dim)
+            # print(mu, std)        
+            # std = tf.cast(0.01, dtype=tf.float64)
+            if(tf.math.is_nan(mu)):
+                mu = np.zeros(mu.shape)
+                std = 0.01 * np.ones(std.shape)
+
+            action = np.random.normal(mu[0], std, size=self.action_dim)
+            # if(tf.math.is_nan(mu)):
+            #     # action = np.random.normal(0, 0.01, size=self.action_dim)
             action = np.clip(action, -self.action_bound, self.action_bound)
             log_policy = self.log_pdf(mu, std, action)
 
             return log_policy, action
 
-        def get_real_action(self, state)
-            state = np.reshape(state, [1, self.state_dim])
+        def get_real_action(self, state):
+            # state = np.reshape(state[1:], [1, self.state_dim-1])
+            state = np.reshape([np.arctan2(state[1], state[0]), state[2]], [1, self.state_dim-1])
             action, _ = self.model.predict(state)
 
             action = np.clip(action, -self.action_bound, self.action_bound)
-            log_policy = self.log_pdf(mu, std, action)
+            log_policy = None
+            # log_policy = self.log_pdf(mu, std, action)
 
             return log_policy, action
 
         def log_pdf(self, mu, std, action):
             std = tf.clip_by_value(std, self.std_bound[0], self.std_bound[1])
-            var = std ** 2
+            var = tf.cast(std ** 2, dtype=tf.float64)
             log_policy_pdf = -0.5 * (action - mu) ** 2 / \
-                var - 0.5 * tf.math.log(var * 2 * np.pi)
+                var - 0.5 * tf.cast(tf.math.log(var * 2 * np.pi), dtype=tf.float64)
             return tf.reduce_sum(log_policy_pdf, 1, keepdims=True)
 
         def create_model(self):
     
-            state_input = Input((self.state_dim,), dtype = tf.float64)
+            state_input = Input((self.state_dim-1,), dtype = tf.float64)
             state_err = Lambda(lambda x: x - self.target)(state_input)
-            out_mu = Dense(self.action_dim, activation='linear', use_bias=False, name='out_mu')(state_err)
+            mu_output = Dense(self.action_dim, activation='linear', \
+                use_bias=False, name='out_mu')(state_err)
 
 
             # int_err = Input((self.state_dim,), dtype = tf.float64)
@@ -89,8 +107,8 @@ class Agent(object):
             # porp_gain = Dense(self.action_dim, activation='linear')(state_err)
             # int_gain = Dense(self.action_dim, activation='linear')(int_err)
             # out_mu = Lambda(lambda x: x[0] + x[1])([porp_gain, int_gain])
-            mu_output = Lambda(lambda x: x * self.action_bound)(out_mu)
-            std_output = Dense(self.action_dim, activation='softplus')(state_err)
+            # mu_output = Lambda(lambda x: x * self.action_bound)(out_mu)
+            std_output =  Lambda(lambda x: x / 10)(Dense(self.action_dim, activation='sigmoid')(state_err))
             # dense_1 = Dense(self.config.actor['layer1'], activation='relu')(state_input)
             # dense_2 = Dense(self.config.actor['layer2'], activation='relu')(dense_1)
             # out_mu = Dense(self.action_dim, activation='tanh')(dense_2)
@@ -99,6 +117,8 @@ class Agent(object):
             return tf.keras.models.Model(state_input, [mu_output, std_output])
         
         def compute_loss(self, log_old_policy, log_new_policy, actions, gaes):
+            # print(log_new_policy)
+            # print(tf.stop_gradient(log_old_policy))
             ratio = tf.exp(log_new_policy - tf.stop_gradient(log_old_policy))
             gaes = tf.stop_gradient(gaes)
             clipped_ratio = tf.clip_by_value(
@@ -107,17 +127,29 @@ class Agent(object):
             return tf.reduce_mean(surrogate)
 
         def train(self, log_old_policy, states, actions, gaes):
+            backup_actor = self.model.get_weights()
+            # print('before', self.model.get_layer(name='out_mu').get_weights())
             with tf.GradientTape() as tape:
                 # state_err = state - self.target
                 # # print(state_err)
                 # self.int_err += state_err
                 # mu, std = self.model([state_err, self.int_err], training=True)
+                states = np.transpose(np.array([np.arctan2(states[:, 1], states[:, 0]), states[:, 2]]))
                 mu, std = self.model(states, training=True)
+
+                # std = tf.cast(0.01, dtype=tf.float64)
                 log_new_policy = self.log_pdf(mu, std, actions)
                 loss = self.compute_loss(
                     log_old_policy, log_new_policy, actions, gaes)
             grads = tape.gradient(loss, self.model.trainable_variables)
             self.opt.apply_gradients(zip(grads, self.model.trainable_variables))
+
+            errors = tf.math.is_nan(self.model.get_layer(name='out_mu').get_weights())
+            if(len(tf.where(errors))):
+                print('ERROR NaN')
+                self.model.set_weights(backup_actor)
+
+            # print('after', self.model.get_layer(name='out_mu').get_weights())
             return loss
 
     class Critic:
@@ -206,8 +238,12 @@ class Agent(object):
             state = self.env.reset()
             while not done:
                 
+                self.env.render()
+
                 log_old_policy, action = self.actor.get_action(state)
+                # print('action', action)
                 next_state, reward, done, _ = self.env.step(action)
+                # print('next_state', next_state)
 
                 state = np.reshape(state, [1, self.state_dim])
                 action = np.reshape(action, [1, self.action_dim])

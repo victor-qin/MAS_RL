@@ -60,7 +60,7 @@ class PendulumEquilEnv(gym.Env):
         return self._get_obs(), -costs, False, {}
 
     def reset(self):
-        high = np.array([0.02 * np.pi, 0.01])
+        high = np.array([0.1 * np.pi, 0.1])
         self.state = self.np_random.uniform(low=-high, high=high)
         self.last_u = None
         return self._get_obs()
@@ -101,4 +101,5 @@ class PendulumEquilEnv(gym.Env):
 
 
 def angle_normalize(x):
-    return (((x+np.pi) % (2*np.pi)) - np.pi)
+    mod = (x+np.pi) % (2*np.pi)
+    return ((mod) - np.pi)
