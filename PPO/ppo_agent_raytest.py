@@ -60,7 +60,7 @@ class Agent(object):
             # mu, std = self.model.predict([state_err, self.int_err])
             mu, std = self.model.predict(state)
             # print(mu, std)        
-            # std = tf.cast(0.01, dtype=tf.float64)
+            std = tf.cast(0.01, dtype=tf.float64)
             if(tf.math.is_nan(mu)):
                 mu = np.zeros(mu.shape)
                 std = 0.01 * np.ones(std.shape)
@@ -96,7 +96,8 @@ class Agent(object):
             state_input = Input((self.state_dim-1,), dtype = tf.float64)
             state_err = Lambda(lambda x: x - self.target)(state_input)
             mu_output = Dense(self.action_dim, activation='linear', \
-                use_bias=False, name='out_mu')(state_err)
+                use_bias=False, name='out_mu', \
+                kernel_constraint = max_norm(32))(state_err)
 
 
             # int_err = Input((self.state_dim,), dtype = tf.float64)
@@ -108,7 +109,8 @@ class Agent(object):
             # int_gain = Dense(self.action_dim, activation='linear')(int_err)
             # out_mu = Lambda(lambda x: x[0] + x[1])([porp_gain, int_gain])
             # mu_output = Lambda(lambda x: x * self.action_bound)(out_mu)
-            std_output =  Lambda(lambda x: x / 10)(Dense(self.action_dim, activation='sigmoid')(state_err))
+            # std_output =  Lambda(lambda x: x / 10)(Dense(self.action_dim, activation='sigmoid')(state_err))
+            std_output = Lambda(lambda x: x / 100)(state_err)
             # dense_1 = Dense(self.config.actor['layer1'], activation='relu')(state_input)
             # dense_2 = Dense(self.config.actor['layer2'], activation='relu')(dense_1)
             # out_mu = Dense(self.action_dim, activation='tanh')(dense_2)
@@ -128,7 +130,7 @@ class Agent(object):
 
         def train(self, log_old_policy, states, actions, gaes):
             backup_actor = self.model.get_weights()
-            # print('before', self.model.get_layer(name='out_mu').get_weights())
+            print('before', self.model.get_layer(name='out_mu').get_weights())
             with tf.GradientTape() as tape:
                 # state_err = state - self.target
                 # # print(state_err)
@@ -137,7 +139,7 @@ class Agent(object):
                 states = np.transpose(np.array([np.arctan2(states[:, 1], states[:, 0]), states[:, 2]]))
                 mu, std = self.model(states, training=True)
 
-                # std = tf.cast(0.01, dtype=tf.float64)
+                std = tf.cast(0.01, dtype=tf.float64)
                 log_new_policy = self.log_pdf(mu, std, actions)
                 loss = self.compute_loss(
                     log_old_policy, log_new_policy, actions, gaes)
@@ -149,7 +151,7 @@ class Agent(object):
                 print('ERROR NaN')
                 self.model.set_weights(backup_actor)
 
-            # print('after', self.model.get_layer(name='out_mu').get_weights())
+            print('after', self.model.get_layer(name='out_mu').get_weights())
             return loss
 
     class Critic:

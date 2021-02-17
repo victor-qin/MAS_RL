@@ -27,7 +27,7 @@ def main():
 
     wandb.config.gamma = 0.99
     wandb.config.update_interval = 5
-    wandb.config.actor_lr = 0.001
+    wandb.config.actor_lr = 0.00005
     wandb.config.critic_lr = 0.001
     wandb.config.batch_size = 64
     wandb.config.clip_ratio = 0.1
@@ -102,20 +102,21 @@ def main():
             ref = temp.iden_get.remote()
 
             # time.sleep(100)
-            redo = True
-            count = 0
-            while(redo and count < 10):
-                try:
-                    ray.get(ref)
-                    redo = False
-                except:
-                    print('mem error')
-                    count += 1
-                    time.sleep(1)
-                    pass
-            if(count >= 10):
-                return 1
+            # redo = True
+            # count = 0
+            # while(redo and count < 10):
+            #     try:
+            #         ray.get(ref)
+            #         redo = False
+            #     except:
+            #         print('mem error')
+            #         count += 1
+            #         time.sleep(1)
+            #         pass
+            # if(count >= 10):
+            #     return 1
 
+            ray.get(ref)
         else:
             temp = Agent(configuration, env_t, i)
 
