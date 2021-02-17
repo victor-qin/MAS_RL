@@ -15,14 +15,12 @@ from pendulum_v1 import PendulumEquilEnv
 
 tf.keras.backend.set_floatx('float64')
 
-
-if __name__ == "__main__":
-    
+def main():
     try: wandb.finish()
     except: pass
     
     ####configurations
-    group_temp = "021021-8_64-epsilon0.2"
+    group_temp = "021421_1-64-pend2-2"
     env_name = "Pendulum-v1"
     wandb.init(group=group_temp, project="rl-ppo-federated", mode="offline")
     
@@ -37,7 +35,7 @@ if __name__ == "__main__":
     
     wandb.config.episodes = 5
     wandb.config.num = 1
-    wandb.config.epochs = 10
+    wandb.config.epochs = 300
 
     wandb.config.actor = {'layer1': 64, 'layer2' : 64}
     wandb.config.critic = {'layer1': 64, 'layer2' : 64, 'layer3': 32}
@@ -47,17 +45,31 @@ if __name__ == "__main__":
     wandb.config.epsilon = 0.2  # range from 1 to 0 (all random to never) - epsilon greedy
 
     wandb.run.name = wandb.run.id
-    wandb.run.tags = [group_temp, "8-bot", "actor-64x2", "critic-64x2/32", "avg-epsilon", env_name]
-    wandb.run.notes ="testing epsilon methods, pendulum testing 8 bots 64/32 layers, 300 epochs, epsilon 0.2"
+    wandb.run.tags = [group_temp, "1-bot", "actor-64x2", "critic-64x2/32", "avg-normal", env_name]
+    wandb.run.notes ="testing P controller on modded pend start, modded eval, deep critic 64/32 layers, 300 epochs"
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--jobid', type=str, default=None)
+    parser.add_argumet('--actor_lr', type=float, default=None)
+    parser.add_argumet('--critic_lr', type=float, default=None)
+    parser.add_argumet('--clip_ratio', type=float, default=None)
+
+
     args = parser.parse_args()
-    print("args", args.jobid)
+    # print("args", args.jobid)
 
     if(args.jobid != None):
         wandb.config.jobid = args.jobid
-        print("wandb", wandb.config.jobid)
+        print("wandb jobid", wandb.config.jobid)
+    if(args.actor_lr != None):
+        wandb.config.actor_lr = args.actor_lr
+        print("wandb actor_lr", wandb.config.actor_lr)
+    if(args.critic_lr != None):
+        wandb.config.critic_lr = args.critic_lr
+        print("wandb critic_lr", wandb.config.critic_lr)
+    if(args.clip_ratio != None):
+        wandb.config.clip_ratio = args.clip_ratio
+        print("wandb clip_ratio", wandb.config.clip_ratio)
 
     # print(wandb.config)
     ray.init(include_dashboard=False)
@@ -164,3 +176,8 @@ if __name__ == "__main__":
     writeout([agents[0]], wandb.config.epochs, "average")
     
     wandb.finish()
+
+
+if __name__ == "__main__":
+    
+    main()

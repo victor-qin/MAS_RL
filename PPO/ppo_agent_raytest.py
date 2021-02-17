@@ -35,6 +35,11 @@ class Agent(object):
             self.action_bound = action_bound
             self.std_bound = std_bound
             self.model = self.create_model()
+
+            # print(self.model.summary())
+            # print(self.model.get_layer(name='out_mu').get_weights())
+            # self.model.get_layer(name='out_mu').set_weights([np.array([[1.0], [0.0],[0.0]])])
+
             self.opt = tf.keras.optimizers.Adam(self.config.actor_lr)
 
         def get_action(self, state):
@@ -53,6 +58,15 @@ class Agent(object):
 
             return log_policy, action
 
+        def get_real_action(self, state)
+            state = np.reshape(state, [1, self.state_dim])
+            action, _ = self.model.predict(state)
+
+            action = np.clip(action, -self.action_bound, self.action_bound)
+            log_policy = self.log_pdf(mu, std, action)
+
+            return log_policy, action
+
         def log_pdf(self, mu, std, action):
             std = tf.clip_by_value(std, self.std_bound[0], self.std_bound[1])
             var = std ** 2
@@ -64,7 +78,8 @@ class Agent(object):
     
             state_input = Input((self.state_dim,), dtype = tf.float64)
             state_err = Lambda(lambda x: x - self.target)(state_input)
-            out_mu = Dense(self.action_dim, activation='linear')(state_err)
+            out_mu = Dense(self.action_dim, activation='linear', use_bias=False, name='out_mu')(state_err)
+
 
             # int_err = Input((self.state_dim,), dtype = tf.float64)
             # state_err = Subtract(shape=(self.state_dim,))([state_input, self.target])
@@ -244,10 +259,11 @@ class Agent(object):
             if(render):
                 self.env.render()
 
-            action = self.actor.get_action(state) 
-            action = np.clip(action, -self.action_bound, self.action_bound)
+            # action = self.actor.get_action(state) 
+            # action = np.clip(action, -self.action_bound, self.action_bound)
+            
 
-            _, action = self.actor.get_action(state)
+            _, action = self.actor.get_real_action(state)
             next_state, reward, done, _ = self.env.step(action)
 
             episode_reward += reward
