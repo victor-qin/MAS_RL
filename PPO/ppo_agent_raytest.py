@@ -130,7 +130,7 @@ class Agent(object):
 
         def train(self, log_old_policy, states, actions, gaes):
             backup_actor = self.model.get_weights()
-            print('before', self.model.get_layer(name='out_mu').get_weights())
+            # print('before', self.model.get_layer(name='out_mu').get_weights())
             with tf.GradientTape() as tape:
                 # state_err = state - self.target
                 # # print(state_err)
@@ -151,7 +151,7 @@ class Agent(object):
                 print('ERROR NaN')
                 self.model.set_weights(backup_actor)
 
-            print('after', self.model.get_layer(name='out_mu').get_weights())
+            # print('after', self.model.get_layer(name='out_mu').get_weights())
             return loss
 
     class Critic:

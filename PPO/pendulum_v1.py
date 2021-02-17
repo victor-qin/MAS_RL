@@ -60,7 +60,7 @@ class PendulumEquilEnv(gym.Env):
         return self._get_obs(), -costs, False, {}
 
     def reset(self):
-        high = np.array([0.3 * np.pi, 0.1])
+        high = np.array([0.1 * np.pi, 0.1])
         self.state = self.np_random.uniform(low=-high, high=high)
         self.last_u = None
         return self._get_obs()
