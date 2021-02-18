@@ -33,7 +33,7 @@ def create_model():
 def get_action(state, action_bound, err):
     
     k = -np.array([8, 0.1])
-    i = -np.array([0, 0.0])
+    i = -np.array([0.005, 0.0])
 
     cor_state = [np.arctan2(state[1], state[0]), state[2]]
     action = np.array([np.matmul(k, cor_state)]) 
