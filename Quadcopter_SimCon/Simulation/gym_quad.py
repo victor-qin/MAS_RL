@@ -168,11 +168,11 @@ class GymQuad(gym.Env):
         self.init_pos = self.quad.pos
         self.isTrack = isTrack
   
-
-    def render(self):
+    def render(self, ifsave=0):
         
         waypoints = np.stack((self.init_pos, self.target[0:3]))
-        ifsave = 0
+        ifsave = ifsave
+
 
 
         utils.makeGymFigures(self.quad.params, np.array(self.t_all), np.array(self.pos_all), np.array(self.vel_all), np.array(self.quat_all), np.array(self.omega_all), np.array(self.euler_all), np.array(self.w_cmd_all), np.array(self.wMotor_all), np.array(self.thr_all), np.array(self.tor_all), np.array(self.rewards))

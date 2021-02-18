@@ -9,20 +9,6 @@ import numpy as np
 from pathlib import Path
 import ray
 
-import os
-import sys
-
-parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-os.environ["PYTHONPATH"] = parent_dir + ":" + os.environ.get("PYTHONPATH", "")
-sys.path.append(parent_dir)
-sys.path.append(parent_dir + '/Quadcopter_SimCon/Simulation/')
-
-import Quadcopter_SimCon
-# sys.path.append('./')
-# from gym_pybullet_drones.envs.single_agent_rl.FlyThruGateAviary import FlyThruGateAviary
-# from gym_pybullet_drones.utils.Logger import Logger
-# from gym_pybullet_drones.utils.utils import sync
-
 tf.keras.backend.set_floatx('float64')
 
 # function for writing models out
@@ -56,23 +42,27 @@ class Agent(object):
 
             # print(self.model.summary())
             # print(self.model.get_layer(name='out_mu').get_weights())
-            self.model.get_layer(name='out_mu').set_weights([-np.array([[6.0],[0.05]])])
+            self.model.get_layer(name='out_mu').set_weights([-np.array([[8.0],[0.1]])])
+            self.model.get_layer(name='int_mu').set_weights([-np.array([[0.005],[0.0]])])
             # print('original', self.model.get_layer(name='out_mu').get_weights())
 
-            self.opt = tf.keras.optimizers.Adam(self.config.actor_lr)
+            # self.opt = tf.keras.optimizers.Adam(self.config.actor_lr)
+            self.opt = tf.keras.optimizers.SGD(learning_rate = self.config.actor_lr)
+
 
         def get_action(self, state):
             # state = np.reshape(state[1:], [1, self.state_dim-1])
             # print(np.arctan2(state[1], state[0]))
             state = np.reshape([np.arctan2(state[1], state[0]), state[2]], [1, self.state_dim-1])
             # action, _ = self.model.predict(state)
-            # state_err = state - self.target
+            state_err = state - self.target
+
             # # print(state_err)
-            # self.int_err += state_err
+            self.int_err += state_err
             # print(self.int_err)
 
-            # mu, std = self.model.predict([state_err, self.int_err])
-            mu, std = self.model.predict(state)
+            mu, std = self.model.predict([state_err, self.int_err])
+            # mu, std = self.model.predict(state)
             # print(mu, std)        
             std = tf.cast(0.01, dtype=tf.float64)
             if(tf.math.is_nan(mu)):
@@ -85,12 +75,14 @@ class Agent(object):
             action = np.clip(action, -self.action_bound, self.action_bound)
             log_policy = self.log_pdf(mu, std, action)
 
-            return log_policy, action
+            return log_policy, action, self.int_err
 
         def get_real_action(self, state):
             # state = np.reshape(state[1:], [1, self.state_dim-1])
             state = np.reshape([np.arctan2(state[1], state[0]), state[2]], [1, self.state_dim-1])
-            action, _ = self.model.predict(state)
+            state_err = state - self.target
+            self.int_err += state_err
+            action, _ = self.model.predict([state_err, self.int_err])
 
             action = np.clip(action, -self.action_bound, self.action_bound)
             log_policy = None
@@ -109,19 +101,23 @@ class Agent(object):
     
             state_input = Input((self.state_dim-1,), dtype = tf.float64)
             state_err = Lambda(lambda x: x - self.target)(state_input)
-            mu_output = Dense(self.action_dim, activation='linear', \
+            out_mu = Dense(self.action_dim, activation='linear', \
                 use_bias=False, name='out_mu', \
                 kernel_constraint = max_norm(32))(state_err)
+            
+            int_input = Input((self.state_dim-1,), dtype = tf.float64)
+            int_mu = Dense(self.action_dim, activation='linear', \
+                use_bias=False, name='int_mu', \
+                kernel_constraint = max_norm(32))(int_input)
 
 
             # int_err = Input((self.state_dim,), dtype = tf.float64)
             # state_err = Subtract(shape=(self.state_dim,))([state_input, self.target])
 
 
-
             # porp_gain = Dense(self.action_dim, activation='linear')(state_err)
             # int_gain = Dense(self.action_dim, activation='linear')(int_err)
-            # out_mu = Lambda(lambda x: x[0] + x[1])([porp_gain, int_gain])
+            mu_output = Lambda(lambda x: x[0] + x[1])([out_mu, int_mu])
             # mu_output = Lambda(lambda x: x * self.action_bound)(out_mu)
             # std_output =  Lambda(lambda x: x / 10)(Dense(self.action_dim, activation='sigmoid')(state_err))
             std_output = Lambda(lambda x: x / 100)(state_err)
@@ -130,7 +126,8 @@ class Agent(object):
             # out_mu = Dense(self.action_dim, activation='tanh')(dense_2)
             # mu_output = Lambda(lambda x: x * self.action_bound)(out_mu)
             # std_output = Dense(self.action_dim, activation='softplus')(dense_2)
-            return tf.keras.models.Model(state_input, [mu_output, std_output])
+            # return tf.keras.models.Model(state_input, [mu_output, std_output])
+            return tf.keras.models.Model([state_input, int_input], [mu_output, std_output])
         
         def compute_loss(self, log_old_policy, log_new_policy, actions, gaes):
             # print(log_new_policy)
@@ -151,7 +148,9 @@ class Agent(object):
                 # self.int_err += state_err
                 # mu, std = self.model([state_err, self.int_err], training=True)
                 states = np.transpose(np.array([np.arctan2(states[:, 1], states[:, 0]), states[:, 2]]))
-                mu, std = self.model(states, training=True)
+                int_err = states[:, :self.state_dim]
+                # mu, std = self.model(states, training=True)
+                mu, std = self.model([states, int_err], training=True)
 
                 std = tf.cast(0.01, dtype=tf.float64)
                 log_new_policy = self.log_pdf(mu, std, actions)
@@ -201,14 +200,10 @@ class Agent(object):
     def __init__(self, config, env, iden = 0):
         self.config = config
 
-        # register_env("flythrugate-aviary-v0", lambda _: FlyThruGateAviary())
-
-        # self.env = gym.make(env)
         self.env = env
         self.state_dim = self.env.observation_space.shape[0]
         self.action_dim = self.env.action_space.shape[0]
-        # self.action_bound = self.env.action_space.high[0]
-        self.action_bound = self.env.action_space.high
+        self.action_bound = self.env.action_space.high[0]
         self.std_bound = [1e-2, 1.0]
 
         self.actor_opt = tf.keras.optimizers.Adam(self.config.actor_lr)
@@ -243,7 +238,7 @@ class Agent(object):
             batch = np.append(batch, elem, axis=0)
         return batch
 
-    def train(self, max_episodes=1000):
+    def train(self, max_episodes=1000, render = True):
         output = []
         print("Training Agent {}".format(self.iden))
 
@@ -255,18 +250,24 @@ class Agent(object):
 
             episode_reward, done = 0, False
 
-            print(self.env)
             state = self.env.reset()
+            int_err = np.zeros(self.state_dim-1)
+            self.actor.int_err = int_err
+            state = np.concatenate((state, int_err))
             while not done:
+                
+                if(render):
+                    self.env.render()
 
-                log_old_policy, action = self.actor.get_action(state)
+                log_old_policy, action, int_err = self.actor.get_action(state[:self.state_dim])
                 # print('action', action)
                 next_state, reward, done, _ = self.env.step(action)
                 # print('next_state', next_state)
+                next_state = np.concatenate((next_state, int_err[0]))
 
-                state = np.reshape(state, [1, self.state_dim])
+                state = np.reshape(state, [1, self.state_dim + 2])
                 action = np.reshape(action, [1, self.action_dim])
-                next_state = np.reshape(next_state, [1, self.state_dim])
+                next_state = np.reshape(next_state, [1, self.state_dim + 2])
                 reward = np.reshape(reward, [1, 1])
                 log_old_policy = np.reshape(log_old_policy, [1, 1])
 
@@ -281,8 +282,10 @@ class Agent(object):
                     rewards = self.list_to_batch(reward_batch)
                     old_policys = self.list_to_batch(old_policy_batch)
 
-                    v_values = self.critic.model.predict(states)
-                    next_v_value = self.critic.model.predict(next_state)
+                    # v_values = self.critic.model.predict(states)
+                    # next_v_value = self.critic.model.predict(next_state)
+                    v_values = self.critic.model.predict(states[:, :self.state_dim])
+                    next_v_value = self.critic.model.predict(next_state[:, :self.state_dim])
 
                     gaes, td_targets = self.gae_target(
                         rewards, v_values, next_v_value, done)
@@ -290,7 +293,7 @@ class Agent(object):
                     for epoch in range(self.config.intervals):
                         actor_loss = self.actor.train(
                             old_policys, states, actions, gaes)
-                        critic_loss = self.critic.train(states, td_targets)
+                        critic_loss = self.critic.train(states[:, :self.state_dim], td_targets)
 
                     state_batch = []
                     action_batch = []
@@ -306,25 +309,23 @@ class Agent(object):
         
         return output
 
-
     def evaluate(self, render=False):
         episode_reward, done = 0, False
 
-        state = self.env.reset(isTrack = True)
+        state = self.env.reset()
         while not done:
             if(render):
                 self.env.render()
-            
-            _, action = self.actor.get_action(state)
-            # action = np.clip(action, -self.action_bound, self.action_bound)
 
+            # action = self.actor.get_action(state) 
+            # action = np.clip(action, -self.action_bound, self.action_bound)
+            
+
+            _, action = self.actor.get_real_action(state)
             next_state, reward, done, _ = self.env.step(action)
 
             episode_reward += reward
             state = next_state
-
-        if(render):
-            self.env.render()
 
         return episode_reward
 
