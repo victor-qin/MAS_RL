@@ -1,5 +1,4 @@
 #!/bin/bash
-
 #SBATCH -n 1               # Number of cores (-n)
 #SBATCH -N 1               # Ensure that all cores are on one Node (-N)
 #SBATCH -t 1-00:00          # Runtime in D-HH:MM, minimum of 10 minutes

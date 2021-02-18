@@ -9,6 +9,20 @@ import numpy as np
 from pathlib import Path
 import ray
 
+import os
+import sys
+
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+os.environ["PYTHONPATH"] = parent_dir + ":" + os.environ.get("PYTHONPATH", "")
+sys.path.append(parent_dir)
+sys.path.append(parent_dir + '/Quadcopter_SimCon/Simulation/')
+
+import Quadcopter_SimCon
+# sys.path.append('./')
+# from gym_pybullet_drones.envs.single_agent_rl.FlyThruGateAviary import FlyThruGateAviary
+# from gym_pybullet_drones.utils.Logger import Logger
+# from gym_pybullet_drones.utils.utils import sync
+
 tf.keras.backend.set_floatx('float64')
 
 # function for writing models out
@@ -187,10 +201,14 @@ class Agent(object):
     def __init__(self, config, env, iden = 0):
         self.config = config
 
+        # register_env("flythrugate-aviary-v0", lambda _: FlyThruGateAviary())
+
+        # self.env = gym.make(env)
         self.env = env
         self.state_dim = self.env.observation_space.shape[0]
         self.action_dim = self.env.action_space.shape[0]
-        self.action_bound = self.env.action_space.high[0]
+        # self.action_bound = self.env.action_space.high[0]
+        self.action_bound = self.env.action_space.high
         self.std_bound = [1e-2, 1.0]
 
         self.actor_opt = tf.keras.optimizers.Adam(self.config.actor_lr)
@@ -237,6 +255,7 @@ class Agent(object):
 
             episode_reward, done = 0, False
 
+            print(self.env)
             state = self.env.reset()
             while not done:
 
@@ -287,23 +306,25 @@ class Agent(object):
         
         return output
 
+
     def evaluate(self, render=False):
         episode_reward, done = 0, False
 
-        state = self.env.reset()
+        state = self.env.reset(isTrack = True)
         while not done:
             if(render):
                 self.env.render()
-
-            # action = self.actor.get_action(state) 
-            # action = np.clip(action, -self.action_bound, self.action_bound)
             
+            _, action = self.actor.get_action(state)
+            # action = np.clip(action, -self.action_bound, self.action_bound)
 
-            _, action = self.actor.get_real_action(state)
             next_state, reward, done, _ = self.env.step(action)
 
             episode_reward += reward
             state = next_state
+
+        if(render):
+            self.env.render()
 
         return episode_reward
 

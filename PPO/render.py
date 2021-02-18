@@ -27,4 +27,4 @@ def save_frames_as_gif(frames, filename, path='./renders'):
 
 if __name__ == '__main__':
 
-    
+    return 1

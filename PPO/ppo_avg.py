@@ -9,9 +9,36 @@ from ppo_agent_raytest import Agent, writeout
 from averaging import normal_avg, max_avg, softmax_avg, relu_avg
 import ray
 import argparse
+
+import os
+import sys
+# print(os.path.abspath(__file__))
+# print( os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# sys.path.append('../')
+
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# other_dir = os.path.join(parent_dir, base_filename + "." + filename_suffix)
+# print(parent_dir + "/Quadcopter_SimCon/Simulation/")
+os.environ["PYTHONPATH"] = parent_dir + ":" + os.environ.get("PYTHONPATH", "")
+dir_name = os.path.join(parent_dir, '/Quadcopter_SimCon/Simulation/')
+
+sys.path.append(parent_dir)
+sys.path.append(parent_dir + '/Quadcopter_SimCon/Simulation/')
+# os.environ["PYTHONPATH"] = parent_dir + "\Quadcopter_SimCon\Simulation" + ":" + os.environ.get("PYTHONPATH", "")
+
 import time
 
 from pendulum_v1 import PendulumEquilEnv
+
+# from gym_pybullet_drones.envs.single_agent_rl.FlyThruGateAviary import FlyThruGateAviary
+# from gym_pybullet_drones.utils.Logger import Logger
+# from gym_pybullet_drones.utils.utils import sync
+
+# from gym_quad import GymQuad
+# import Quadcopter_SimCon
+
 
 tf.keras.backend.set_floatx('float64')
 
@@ -20,8 +47,13 @@ def main():
     except: pass
     
     ####configurations
+
     group_temp = "021721_1-64-pend2"
     env_name = "Pendulum-v1"
+
+    #     env_name = "Pendulum-v0"
+    #     env_name = 'gym_quad-v0'
+
     wandb.init(group=group_temp, project="rl-ppo-federated", mode="online")
     
 
@@ -51,6 +83,7 @@ def main():
 
     ISRAY = True
 
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--jobid', type=str, default=None)
     parser.add_argument('--actor_lr', type=float, default=None)
@@ -75,7 +108,8 @@ def main():
         print("wandb clip_ratio", wandb.config.clip_ratio)
 
     # print(wandb.config)
-    ray.init(include_dashboard=False)
+    ray.init(include_dashboard=False, ignore_reinit_error=True)
+    # register_env("flythrugate-aviary-v0", lambda _: FlyThruGateAviary())
     
     # main run    
     N = wandb.config.num
@@ -93,9 +127,16 @@ def main():
 
     configuration = Struct(**wandb.config.as_dict())
 
+    # gym.register(
+    #     id="gym_quad-v0",
+    #     entry_point = 'Quadcopter_SimCon.Simulation.gym_quad:GymQuad',
+    # )
+
     # set up the agent
     for i in range(N):
+        target = np.array([0, 0, 1, 0, 0, 0], dtype=np.float32)
         env_t = gym.make(env_name)
+        env_t.set_target(target)
 
         if(ISRAY):
             temp = Agent.remote(configuration, env_t, i)
@@ -115,7 +156,6 @@ def main():
                     pass
             if(count >= 10):
                 return 1
-
         else:
             temp = Agent(configuration, env_t, i)
 
@@ -123,7 +163,8 @@ def main():
 
     # early write out
     writeout(agents, 0)
-        
+    
+    time.sleep(3)
     # start the training
     max_reward = -np.inf
     for z in range(wandb.config.epochs):
@@ -187,10 +228,12 @@ def main():
 
         rewards = []
         jobs = []
+
         isrender = False
         if(ISRAY):
             for j in range(len(agents)):
                 jobs.append(agents[j].evaluate.remote(render=isrender))
+
 
         for j in range(len(agents)):
             if(ISRAY):
