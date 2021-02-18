@@ -9,10 +9,35 @@ from ppo_agent_raytest import Agent, writeout
 from averaging import normal_avg, max_avg, softmax_avg, relu_avg
 import ray
 import argparse
+
+import os
+import sys
+# print(os.path.abspath(__file__))
+# print( os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# sys.path.append('../')
+
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# other_dir = os.path.join(parent_dir, base_filename + "." + filename_suffix)
+# print(parent_dir + "/Quadcopter_SimCon/Simulation/")
+os.environ["PYTHONPATH"] = parent_dir + ":" + os.environ.get("PYTHONPATH", "")
+dir_name = os.path.join(parent_dir, '/Quadcopter_SimCon/Simulation/')
+
+sys.path.append(parent_dir)
+sys.path.append(parent_dir + '/Quadcopter_SimCon/Simulation/')
+# os.environ["PYTHONPATH"] = parent_dir + "\Quadcopter_SimCon\Simulation" + ":" + os.environ.get("PYTHONPATH", "")
+
 import time
 
-tf.keras.backend.set_floatx('float64')
+# from gym_pybullet_drones.envs.single_agent_rl.FlyThruGateAviary import FlyThruGateAviary
+# from gym_pybullet_drones.utils.Logger import Logger
+# from gym_pybullet_drones.utils.utils import sync
 
+from gym_quad import GymQuad
+import Quadcopter_SimCon
+
+tf.keras.backend.set_floatx('float64')
 
 if __name__ == "__main__":
     
@@ -22,6 +47,8 @@ if __name__ == "__main__":
     ####configurations
     group_temp = "021021-8_64-epsilon0.2"
     env_name = "Pendulum-v0"
+    #     env_name = 'gym_quad-v0'
+
     wandb.init(group=group_temp, project="rl-ppo-federated", mode="online")
     
     wandb.config.gamma = 0.99
@@ -34,12 +61,13 @@ if __name__ == "__main__":
     wandb.config.intervals = 3
     
     wandb.config.episodes = 5
-    wandb.config.num = 8
-    wandb.config.epochs = 300
+    wandb.config.num = 4
+    wandb.config.epochs = 100
 
     wandb.config.actor = {'layer1': 64, 'layer2' : 64}
     wandb.config.critic = {'layer1': 64, 'layer2' : 64, 'layer3': 32}
     
+
     wandb.config.average = "epsilon"    # normal, max, softmax, relu, epsilon
     wandb.config.kappa = 1      # range 1 (all avg) to 0 (no avg)
     wandb.config.epsilon = 0.2  # range from 1 to 0 (all random to never) - epsilon greedy
@@ -47,6 +75,7 @@ if __name__ == "__main__":
     wandb.run.name = wandb.run.id
     wandb.run.tags = [group_temp, "8-bot", "actor-64x2", "critic-64x2/32", "avg-epsilon", env_name]
     wandb.run.notes ="testing epsilon methods, pendulum testing 8 bots 64/32 layers, 300 epochs, epsilon 0.2"
+
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--jobid', type=str, default=None)
@@ -58,7 +87,8 @@ if __name__ == "__main__":
         print("wandb", wandb.config.jobid)
 
     # print(wandb.config)
-    ray.init(include_dashboard=False)
+    ray.init(include_dashboard=False, ignore_reinit_error=True)
+    # register_env("flythrugate-aviary-v0", lambda _: FlyThruGateAviary())
     
     # main run    
     N = wandb.config.num
@@ -70,21 +100,27 @@ if __name__ == "__main__":
 
     configuration = Struct(**wandb.config.as_dict())
 
+    # gym.register(
+    #     id="gym_quad-v0",
+    #     entry_point = 'Quadcopter_SimCon.Simulation.gym_quad:GymQuad',
+    # )
+
     # set up the agent
     for i in range(N):
+        target = np.array([0, 0, 1, 0, 0, 0], dtype=np.float32)
         env_t = gym.make(env_name)
+        env_t.set_target(target)
 
         temp = Agent.remote(configuration, env_t, i)
         ref = temp.iden_get.remote()
-
-        # time.sleep(100)
 
         ray.get(ref)
         agents.append(temp)
 
     # early write out
     writeout(agents, 0)
-        
+    
+    time.sleep(3)
     # start the training
     max_reward = -np.inf
     for z in range(wandb.config.epochs):
@@ -136,7 +172,7 @@ if __name__ == "__main__":
         rewards = []
         jobs = []
         for j in range(len(agents)):
-            jobs.append(agents[j].evaluate.remote())
+            jobs.append(agents[j].evaluate.remote(render=True))
 
         for j in range(len(agents)):
             rewards.append(ray.get(jobs[j]))
