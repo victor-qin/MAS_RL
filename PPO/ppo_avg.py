@@ -26,8 +26,8 @@ def main():
     
 
     wandb.config.gamma = 0.99
-    wandb.config.update_interval = 50
-    wandb.config.actor_lr = 0.00005
+    wandb.config.update_interval = 200
+    wandb.config.actor_lr = 0.0005
     wandb.config.critic_lr = 0.001
     wandb.config.batch_size = 64
     wandb.config.clip_ratio = 0.01

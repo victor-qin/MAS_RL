@@ -42,7 +42,7 @@ class Agent(object):
 
             # print(self.model.summary())
             # print(self.model.get_layer(name='out_mu').get_weights())
-            self.model.get_layer(name='out_mu').set_weights([-np.array([[8.0],[0.1]])])
+            self.model.get_layer(name='out_mu').set_weights([-np.array([[6.0],[0.05]])])
             # print('original', self.model.get_layer(name='out_mu').get_weights())
 
             self.opt = tf.keras.optimizers.Adam(self.config.actor_lr)
