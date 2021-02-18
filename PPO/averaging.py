@@ -1,8 +1,9 @@
 import numpy as np
 import ray
+import random
+import wandb
 
-
-def normal_avg(agents):
+def assignment(agents, weights):
 
     critic_avg = []
     actor_avg = []
@@ -10,51 +11,47 @@ def normal_avg(agents):
     ag0 = ray.get(agents[0].actor_get_weights.remote())
     for i in range(len(ag0)):
 
-        actor_t = ag0[i]
+        actor_t = weights[0] * ag0[i]
 
         for j in range(1, len(agents)):
             ref = agents[j].actor_get_weights.remote()
-            actor_t = actor_t + ray.get(ref)[i]
+            actor_t = actor_t + weights[j] * ray.get(ref)[i]
 
-        actor_t = actor_t / len(agents)
+        actor_t = actor_t
         actor_avg.append(actor_t)
 
 
     ag0 = ray.get(agents[0].critic_get_weights.remote())
     for i in range(len(ag0)):
 
-        critic_t = ag0[i]
+        critic_t = weights[0] * ag0[i]
 
         for j in range(1, len(agents)):
             ref = agents[j].critic_get_weights.remote()
-            critic_t = critic_t + ray.get(ref)[i]
+            critic_t = critic_t + weights[j] * ray.get(ref)[i]
 
-        critic_t = critic_t / len(agents)
+        critic_t = critic_t
         critic_avg.append(critic_t)
 
     return critic_avg, actor_avg
+
+def normal_avg(agents):
+
+    critic_avg = []
+    actor_avg = []
+
+    weights = np.ones(len(agents)) * (1 / len(agents))
+
+    return assignment(agents, weights)
 
 def max_avg(agents, end_rewards):
 
     top = np.argmax(end_rewards)
 
-    critic_avg = []
-    actor_avg = []
+    weights = np.zeros(len(agents))
+    weights[top] = 1
 
-    ag0 = ray.get(agents[top].actor_get_weights.remote())
-    for i in range(len(ag0)):
-
-        actor_t = ag0[i]
-        actor_avg.append(actor_t)
-
-
-    ag0 = ray.get(agents[top].critic_get_weights.remote())
-    for i in range(len(ag0)):
-
-        critic_t = ag0[i]
-        critic_avg.append(critic_t)
-
-    return critic_avg, actor_avg
+    return assignment(agents, weights)
 
 def softmax_avg(agents, end_rewards):
 
@@ -63,40 +60,15 @@ def softmax_avg(agents, end_rewards):
     e_adv_r = np.exp(((end_rewards - avg_reward) / (np.max(end_rewards) - np.min(end_rewards))).astype(float))
     e_adv_s = np.exp(((end_rewards - avg_reward) / (deviation)).astype(float))
 
-    print("range-based weighting: ", e_adv_r / e_adv_r.sum())
-    
+    weights_test = e_adv_r / e_adv_r.sum()
+    print("range-based weighting: ", weights_test)
+    wandb.log({'range-avg*n': (np.max(weights_test) - np.min(weights_test)) * len(agents)})
+
     weights = e_adv_s / e_adv_s.sum()
     print("standev-based weighting: ", weights)
+    wandb.log({'stdev-avg*n': (np.max(weights) - np.min(weights)) * len(agents)})
 
-    critic_avg = []
-    actor_avg = []
-
-    ag0 = ray.get(agents[0].actor_get_weights.remote())
-    for i in range(len(ag0)):
-
-        actor_t = weights[0] * ag0[i]
-
-        for j in range(1, len(agents)):
-            ref = agents[j].actor_get_weights.remote()
-            actor_t = actor_t + weights[j] * ray.get(ref)[i]
-
-        actor_t = actor_t
-        actor_avg.append(actor_t)
-
-
-    ag0 = ray.get(agents[0].critic_get_weights.remote())
-    for i in range(len(ag0)):
-
-        critic_t = weights[0] * ag0[i]
-
-        for j in range(1, len(agents)):
-            ref = agents[j].critic_get_weights.remote()
-            critic_t = critic_t + weights[j] * ray.get(ref)[i]
-
-        critic_t = critic_t
-        critic_avg.append(critic_t)
-
-    return critic_avg, actor_avg
+    return assignment(agents, weights)
 
 def relu_avg(agents, end_rewards):
 
@@ -104,32 +76,17 @@ def relu_avg(agents, end_rewards):
     weights = np.maximum(0, end_rewards - avg_reward)
     weights /= np.sum(weights)
 
-    critic_avg = []
-    actor_avg = []
-
-    ag0 = ray.get(agents[0].actor_get_weights.remote())
-    for i in range(len(ag0)):
-
-        actor_t = weights[0] * ag0[i]
-
-        for j in range(1, len(agents)):
-            ref = agents[j].actor_get_weights.remote()
-            actor_t = actor_t + weights[j] * ray.get(ref)[i]
-
-        actor_t = actor_t
-        actor_avg.append(actor_t)
+    return assignment(agents, weights)
 
 
-    ag0 = ray.get(agents[0].critic_get_weights.remote())
-    for i in range(len(ag0)):
+def epsilon_avg(agents, end_rewards, eps):
 
-        critic_t = weights[0] * ag0[i]
+    if np.random.random() < eps: 
+        top = np.random.choice(len(agents)) 
+    else: 
+        top = np.argmax(end_rewards)
 
-        for j in range(1, len(agents)):
-            ref = agents[j].critic_get_weights.remote()
-            critic_t = critic_t + weights[j] * ray.get(ref)[i]
+    weights = np.zeros(len(agents))
+    weights[top] = 1
 
-        critic_t = critic_t
-        critic_avg.append(critic_t)
-
-    return critic_avg, actor_avg
+    return assignment(agents, weights)

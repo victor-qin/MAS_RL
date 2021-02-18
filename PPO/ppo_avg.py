@@ -45,9 +45,10 @@ if __name__ == "__main__":
     except: pass
     
     ####configurations
-    group_temp = "021121_3-64-quadfly"
-    # env_name = "Pendulum-v0"
-    env_name = 'gym_quad-v0'
+    group_temp = "021021-8_64-epsilon0.2"
+    env_name = "Pendulum-v0"
+    #     env_name = 'gym_quad-v0'
+
     wandb.init(group=group_temp, project="rl-ppo-federated", mode="online")
     
     wandb.config.gamma = 0.99
@@ -66,12 +67,15 @@ if __name__ == "__main__":
     wandb.config.actor = {'layer1': 64, 'layer2' : 64}
     wandb.config.critic = {'layer1': 64, 'layer2' : 64, 'layer3': 32}
     
-    wandb.config.average = "normal"    # normal, max, softmax, relu, target
+
+    wandb.config.average = "epsilon"    # normal, max, softmax, relu, epsilon
     wandb.config.kappa = 1      # range 1 (all avg) to 0 (no avg)
+    wandb.config.epsilon = 0.2  # range from 1 to 0 (all random to never) - epsilon greedy
 
     wandb.run.name = wandb.run.id
-    wandb.run.tags = [group_temp, "8-bot", "actor-64x2", "critic-64x2/32", "avg-normal", env_name]
-    wandb.run.notes ="trying new quadcopter env, testing 3 bots 64/32 layers, 20 epochs, normal"
+    wandb.run.tags = [group_temp, "8-bot", "actor-64x2", "critic-64x2/32", "avg-epsilon", env_name]
+    wandb.run.notes ="testing epsilon methods, pendulum testing 8 bots 64/32 layers, 300 epochs, epsilon 0.2"
+
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--jobid', type=str, default=None)
@@ -148,6 +152,9 @@ if __name__ == "__main__":
         elif wandb.config.average == "relu":
             print("relu")
             critic_avg, actor_avg = relu_avg(agents, rewards[:, -1])
+        elif wandb.config.average == "relu":
+            print("relu")
+            critic_avg, actor_avg = epsilon_avg(agents, rewards[:, -1], wandb.config.epsilon)
         else:
             critic_avg, actor_avg = normal_avg(agents)
 
