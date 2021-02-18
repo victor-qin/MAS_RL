@@ -20,9 +20,9 @@ def main():
     except: pass
     
     ####configurations
-    group_temp = "021421_1-64-pend2-2"
+    group_temp = "021721_1-64-pend2"
     env_name = "Pendulum-v1"
-    wandb.init(group=group_temp, project="rl-ppo-federated", mode="offline")
+    wandb.init(group=group_temp, project="rl-ppo-federated", mode="online")
     
 
     wandb.config.gamma = 0.99
