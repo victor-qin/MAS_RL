@@ -30,7 +30,7 @@ sys.path.append(parent_dir + '/Quadcopter_SimCon/Simulation/')
 
 import time
 
-from pendulum_v1 import PendulumEquilEnv
+# from pendulum_v1 import PendulumEquilEnv
 
 # from gym_pybullet_drones.envs.single_agent_rl.FlyThruGateAviary import FlyThruGateAviary
 # from gym_pybullet_drones.utils.Logger import Logger
@@ -53,13 +53,13 @@ def main():
 
     #     env_name = "Pendulum-v0"
     #     env_name = 'gym_quad-v0'
-    env_name = "CartPole-v0"
+    env_name = "CartPole-v2"
 
     wandb.init(group=group_temp, project="rl-ppo-federated", mode="online")
     
 
-    wandb.config.gamma = 0.99
-    wandb.config.update_interval = 200
+    wandb.config.gamma = 0.95
+    wandb.config.update_interval = 100
     wandb.config.actor_lr = 0.0005
     wandb.config.critic_lr = 0.001
     wandb.config.batch_size = 64
@@ -82,7 +82,7 @@ def main():
     wandb.run.tags = [group_temp, "1-bot", "actor-64x2", "critic-64x2/32", "avg-normal", env_name]
     wandb.run.notes ="testing P controller on modded pend start, modded eval, deep critic 64/32 layers, 300 epochs"
 
-    ISRAY = True
+    ISRAY = False
 
 
     parser = argparse.ArgumentParser()
@@ -109,7 +109,8 @@ def main():
         print("wandb clip_ratio", wandb.config.clip_ratio)
 
     # print(wandb.config)
-    ray.init(include_dashboard=False, ignore_reinit_error=True)
+    if(ISRAY):
+        ray.init(include_dashboard=False, ignore_reinit_error=True)
     # register_env("flythrugate-aviary-v0", lambda _: FlyThruGateAviary())
     
     # main run    
@@ -126,6 +127,12 @@ def main():
     #     id="gym_quad-v0",
     #     entry_point = 'Quadcopter_SimCon.Simulation.gym_quad:GymQuad',
     # )
+
+    gym.envs.register(
+        id='CartPole-v2',
+        entry_point='continuous_cartpole:ContinuousCartPoleEnv',
+        max_episode_steps=1000
+    ) 
 
     class Struct:
         def __init__(self, **entries):
@@ -165,7 +172,7 @@ def main():
         agents.append(temp)
 
     # early write out
-    writeout(agents, 0)
+    writeout(agents, 0, ISRAY=ISRAY)
     
     time.sleep(3)
     # start the training
@@ -212,7 +219,7 @@ def main():
             critic_avg, actor_avg = normal_avg(agents)
 
         if z % 50 == 0:
-            writeout(agents, z)
+            writeout(agents, z, ISRAY=ISRAY)
         
         jobs = []       
         # set the average
@@ -255,12 +262,12 @@ def main():
 
         if reward > max_reward:
             max_reward = reward
-            writeout([agents[0]], z, "MAX")
+            writeout([agents[0]], z, "MAX", ISRAY=ISRAY)
 
         if z % 50 == 0:
-            writeout([agents[0]], z, "average")
+            writeout([agents[0]], z, "average", ISRAY=ISRAY)
             
-    writeout([agents[0]], wandb.config.epochs, "average")
+    writeout([agents[0]], wandb.config.epochs, "average", ISRAY=ISRAY)
     
     wandb.finish()
 

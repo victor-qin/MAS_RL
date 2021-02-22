@@ -12,12 +12,12 @@ import ray
 import os
 import sys
 
-parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-os.environ["PYTHONPATH"] = parent_dir + ":" + os.environ.get("PYTHONPATH", "")
-sys.path.append(parent_dir)
-sys.path.append(parent_dir + '/Quadcopter_SimCon/Simulation/')
+# parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# os.environ["PYTHONPATH"] = parent_dir + ":" + os.environ.get("PYTHONPATH", "")
+# sys.path.append(parent_dir)
+# sys.path.append(parent_dir + '/Quadcopter_SimCon/Simulation/')
 
-import Quadcopter_SimCon
+# import Quadcopter_SimCon
 # sys.path.append('./')
 # from gym_pybullet_drones.envs.single_agent_rl.FlyThruGateAviary import FlyThruGateAviary
 # from gym_pybullet_drones.utils.Logger import Logger
@@ -38,7 +38,7 @@ def writeout(agents, index, title = None, ISRAY=True):
             agents[j].save_weights(index, wandb.run.dir, wandb.run.id, title)
 
 
-@ray.remote
+# @ray.remote
 class Agent(object):
 
     class Actor:
@@ -54,31 +54,29 @@ class Agent(object):
             self.std_bound = std_bound
             self.model = self.create_model()
 
-            # print(self.model.summary())
-            # print(self.model.get_layer(name='out_mu').get_weights())
-            # self.model.get_layer(name='out_mu').set_weights([-np.array([[6.0],[0.05]])])
-            # print('original', self.model.get_layer(name='out_mu').get_weights())
-
+            self.std = 0.01
             self.opt = tf.keras.optimizers.Adam(self.config.actor_lr)
 
+            self.model.get_layer('out_mu').set_weights([np.array([[0.1],[0.1],[-1],[-1]]), np.array([3])])
+
         def get_action(self, state):
-            # state = np.reshape(state[1:], [1, self.state_dim-1])
+            state = np.reshape(state, [1, self.state_dim])
             # print(np.arctan2(state[1], state[0]))
             # state = np.reshape([np.arctan2(state[1], state[0]), state[2]], [1, self.state_dim-1])
 
-            mu, std = self.model.predict(state)
+            mu = self.model.predict(state)
 
 
-            action = np.random.normal(mu[0], std, size=self.action_dim)
+            action = np.random.normal(mu[0], self.std, size=self.action_dim)
             # if(tf.math.is_nan(mu)):
             #     # action = np.random.normal(0, 0.01, size=self.action_dim)
             action = np.clip(action, -self.action_bound, self.action_bound)
-            log_policy = self.log_pdf(mu, std, action)
+            log_policy = self.log_pdf(mu, self.std, action)
 
             return log_policy, action
 
         def get_real_action(self, state):
-            # state = np.reshape(state[1:], [1, self.state_dim-1])
+            state = np.reshape(state, [1, self.state_dim])
             # state = np.reshape([np.arctan2(state[1], state[0]), state[2]], [1, self.state_dim-1])
             action, _ = self.model.predict(state)
 
@@ -100,26 +98,9 @@ class Agent(object):
             state_input = Input((self.state_dim,), dtype = tf.float64)
             state_err = Lambda(lambda x: x - self.target)(state_input)
             mu_output = Dense(self.action_dim, activation='linear', \
-                use_bias=False, name='out_mu')(state_err)
+                use_bias=True, name='out_mu')(state_err)
 
-
-            # int_err = Input((self.state_dim,), dtype = tf.float64)
-            # state_err = Subtract(shape=(self.state_dim,))([state_input, self.target])
-
-
-
-            # porp_gain = Dense(self.action_dim, activation='linear')(state_err)
-            # int_gain = Dense(self.action_dim, activation='linear')(int_err)
-            # out_mu = Lambda(lambda x: x[0] + x[1])([porp_gain, int_gain])
-            # mu_output = Lambda(lambda x: x * self.action_bound)(out_mu)
-            # std_output =  Lambda(lambda x: x / 10)(Dense(self.action_dim, activation='sigmoid')(state_err))
-            # std_output = Lambda(lambda x: x / 100)(state_err)
-            # dense_1 = Dense(self.config.actor['layer1'], activation='relu')(state_input)
-            # dense_2 = Dense(self.config.actor['layer2'], activation='relu')(dense_1)
-            # out_mu = Dense(self.action_dim, activation='tanh')(dense_2)
-            # mu_output = Lambda(lambda x: x * self.action_bound)(out_mu)
-            std_output = Dense(self.action_dim, activation='softplus')(dense_2)
-            return tf.keras.models.Model(state_input, [mu_output, std_output])
+            return tf.keras.models.Model(state_input, mu_output)
         
         def compute_loss(self, log_old_policy, log_new_policy, actions, gaes):
             # print(log_new_policy)
@@ -135,10 +116,10 @@ class Agent(object):
             backup_actor = self.model.get_weights()
             # print('before', self.model.get_layer(name='out_mu').get_weights())
             with tf.GradientTape() as tape:
-                mu, std = self.model(states, training=True)
+                mu = self.model(states, training=True)
 
-                std = tf.cast(0.01, dtype=tf.float64)
-                log_new_policy = self.log_pdf(mu, std, actions)
+                # std = tf.cast(0.01, dtype=tf.float64)
+                log_new_policy = self.log_pdf(mu, self.std, actions)
                 loss = self.compute_loss(
                     log_old_policy, log_new_policy, actions, gaes)
             grads = tape.gradient(loss, self.model.trainable_variables)
@@ -235,8 +216,9 @@ class Agent(object):
 
             print(self.env)
             state = self.env.reset()
-
             while not done:
+
+                self.env.render()
 
                 log_old_policy, action = self.actor.get_action(state)
                 # print('action', action)
@@ -289,7 +271,7 @@ class Agent(object):
     def evaluate(self, render=False):
         episode_reward, done = 0, False
 
-        state = self.env.reset(isTrack = True)
+        state = self.env.reset()
         while not done:
             if(render):
                 self.env.render()
