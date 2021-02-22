@@ -26,7 +26,7 @@ import Quadcopter_SimCon
 tf.keras.backend.set_floatx('float64')
 
 # function for writing models out
-def writeout(agents, index, title = None, ISRAY=True):
+def writeout(agents, index, title = None, ISRAY=False):
     
     Path(wandb.run.dir + "/" + "epoch-" + str(index) + "/").mkdir(parents=True, exist_ok=True)
     
@@ -38,7 +38,7 @@ def writeout(agents, index, title = None, ISRAY=True):
             agents[j].save_weights(index, wandb.run.dir, wandb.run.id, title)
 
 
-@ray.remote
+# @ray.remote
 class Agent(object):
 
     class Actor:
@@ -54,31 +54,21 @@ class Agent(object):
             self.std_bound = std_bound
             self.model = self.create_model()
 
-            # print(self.model.summary())
-            # print(self.model.get_layer(name='out_mu').get_weights())
-            # self.model.get_layer(name='out_mu').set_weights([-np.array([[6.0],[0.05]])])
-            # print('original', self.model.get_layer(name='out_mu').get_weights())
-
             self.opt = tf.keras.optimizers.Adam(self.config.actor_lr)
 
         def get_action(self, state):
-            # state = np.reshape(state[1:], [1, self.state_dim-1])
-            # print(np.arctan2(state[1], state[0]))
-            # state = np.reshape([np.arctan2(state[1], state[0]), state[2]], [1, self.state_dim-1])
-
+            state = np.reshape(state, [1, self.state_dim])
             mu, std = self.model.predict(state)
 
 
             action = np.random.normal(mu[0], std, size=self.action_dim)
-            # if(tf.math.is_nan(mu)):
-            #     # action = np.random.normal(0, 0.01, size=self.action_dim)
             action = np.clip(action, -self.action_bound, self.action_bound)
             log_policy = self.log_pdf(mu, std, action)
 
             return log_policy, action
 
         def get_real_action(self, state):
-            # state = np.reshape(state[1:], [1, self.state_dim-1])
+            state = np.reshape(state, [1, self.state_dim])
             # state = np.reshape([np.arctan2(state[1], state[0]), state[2]], [1, self.state_dim-1])
             action, _ = self.model.predict(state)
 
@@ -98,32 +88,15 @@ class Agent(object):
         def create_model(self):
     
             state_input = Input((self.state_dim,), dtype = tf.float64)
-            state_err = Lambda(lambda x: x - self.target)(state_input)
-            mu_output = Dense(self.action_dim, activation='linear', \
-                use_bias=False, name='out_mu')(state_err)
-
-
-            # int_err = Input((self.state_dim,), dtype = tf.float64)
-            # state_err = Subtract(shape=(self.state_dim,))([state_input, self.target])
-
-
-
-            # porp_gain = Dense(self.action_dim, activation='linear')(state_err)
-            # int_gain = Dense(self.action_dim, activation='linear')(int_err)
-            # out_mu = Lambda(lambda x: x[0] + x[1])([porp_gain, int_gain])
-            # mu_output = Lambda(lambda x: x * self.action_bound)(out_mu)
-            # std_output =  Lambda(lambda x: x / 10)(Dense(self.action_dim, activation='sigmoid')(state_err))
-            # std_output = Lambda(lambda x: x / 100)(state_err)
-            # dense_1 = Dense(self.config.actor['layer1'], activation='relu')(state_input)
-            # dense_2 = Dense(self.config.actor['layer2'], activation='relu')(dense_1)
-            # out_mu = Dense(self.action_dim, activation='tanh')(dense_2)
-            # mu_output = Lambda(lambda x: x * self.action_bound)(out_mu)
+            dense_1 = Dense(self.config.actor['layer1'], activation='relu')(state_input)
+            dense_2 = Dense(self.config.actor['layer2'], activation='relu')(dense_1)
+            out_mu = Dense(self.action_dim, activation='tanh')(dense_2)
+            mu_output = Lambda(lambda x: x * self.action_bound)(out_mu)
             std_output = Dense(self.action_dim, activation='softplus')(dense_2)
             return tf.keras.models.Model(state_input, [mu_output, std_output])
         
         def compute_loss(self, log_old_policy, log_new_policy, actions, gaes):
-            # print(log_new_policy)
-            # print(tf.stop_gradient(log_old_policy))
+
             ratio = tf.exp(log_new_policy - tf.stop_gradient(log_old_policy))
             gaes = tf.stop_gradient(gaes)
             clipped_ratio = tf.clip_by_value(
@@ -132,7 +105,7 @@ class Agent(object):
             return tf.reduce_mean(surrogate)
 
         def train(self, log_old_policy, states, actions, gaes):
-            backup_actor = self.model.get_weights()
+            # backup_actor = self.model.get_weights()
             # print('before', self.model.get_layer(name='out_mu').get_weights())
             with tf.GradientTape() as tape:
                 mu, std = self.model(states, training=True)
@@ -179,14 +152,11 @@ class Agent(object):
     def __init__(self, config, env, iden = 0):
         self.config = config
 
-        # register_env("flythrugate-aviary-v0", lambda _: FlyThruGateAviary())
-
-        # self.env = gym.make(env)
         self.env = env
         self.state_dim = self.env.observation_space.shape[0]
         self.action_dim = self.env.action_space.shape[0]
-        # self.action_bound = self.env.action_space.high[0]
-        self.action_bound = self.env.action_space.high
+        self.action_bound = self.env.action_space.high[0]
+        # self.action_bound = self.env.action_space.high
         self.std_bound = [1e-2, 1.0]
 
         self.actor_opt = tf.keras.optimizers.Adam(self.config.actor_lr)
@@ -224,12 +194,15 @@ class Agent(object):
     def train(self, max_episodes=1000):
         output = []
         print("Training Agent {}".format(self.iden))
+        print("Max Episodes,", max_episodes)
+
+        state_batch = []
+        action_batch = []
+        reward_batch = []
+        old_policy_batch = []
 
         for ep in range(max_episodes):
-            state_batch = []
-            action_batch = []
-            reward_batch = []
-            old_policy_batch = []
+
 
             episode_reward, done = 0, False
 
@@ -254,7 +227,9 @@ class Agent(object):
                 reward_batch.append((reward+8)/8)
                 old_policy_batch.append(log_old_policy)
 
-                if len(state_batch) >= self.config.update_interval or done:
+                # if len(state_batch) >= self.config.update_interval or done:
+                if len(state_batch) >= self.config.update_interval:
+                    print("update step")
                     states = self.list_to_batch(state_batch)
                     actions = self.list_to_batch(action_batch)
                     rewards = self.list_to_batch(reward_batch)
@@ -265,6 +240,8 @@ class Agent(object):
 
                     gaes, td_targets = self.gae_target(
                         rewards, v_values, next_v_value, done)
+
+                    choice = np.random.choice(len(states), size=self.config.batch_size, replace=False)
 
                     for epoch in range(self.config.intervals):
                         actor_loss = self.actor.train(
@@ -289,7 +266,7 @@ class Agent(object):
     def evaluate(self, render=False):
         episode_reward, done = 0, False
 
-        state = self.env.reset(isTrack = True)
+        state = self.env.reset()
         while not done:
             if(render):
                 self.env.render()

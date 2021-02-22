@@ -12,21 +12,15 @@ import argparse
 
 import os
 import sys
-# print(os.path.abspath(__file__))
-# print( os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# sys.path.append('../')
-
+# quadcopter linking things
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-# other_dir = os.path.join(parent_dir, base_filename + "." + filename_suffix)
-# print(parent_dir + "/Quadcopter_SimCon/Simulation/")
 os.environ["PYTHONPATH"] = parent_dir + ":" + os.environ.get("PYTHONPATH", "")
 dir_name = os.path.join(parent_dir, '/Quadcopter_SimCon/Simulation/')
 
 sys.path.append(parent_dir)
 sys.path.append(parent_dir + '/Quadcopter_SimCon/Simulation/')
-# os.environ["PYTHONPATH"] = parent_dir + "\Quadcopter_SimCon\Simulation" + ":" + os.environ.get("PYTHONPATH", "")
+
 
 import time
 
@@ -48,22 +42,22 @@ def main():
     
     ####configurations
 
-    group_temp = "021721_1-64-pend2"
+    group_temp = "022221-1_64-baselines"
     # env_name = "Pendulum-v1"
 
-    #     env_name = "Pendulum-v0"
+    env_name = "Pendulum-v0"
     #     env_name = 'gym_quad-v0'
-    env_name = "CartPole-v0"
+    # env_name = "CartPole-v0"
 
     wandb.init(group=group_temp, project="rl-ppo-federated", mode="online")
     
 
     wandb.config.gamma = 0.99
-    wandb.config.update_interval = 200
-    wandb.config.actor_lr = 0.0005
-    wandb.config.critic_lr = 0.001
+    wandb.config.update_interval = 512
+    wandb.config.actor_lr = 0.0003
+    wandb.config.critic_lr = 0.0003
     wandb.config.batch_size = 64
-    wandb.config.clip_ratio = 0.01
+    wandb.config.clip_ratio = 0.2
     wandb.config.lmbda = 0.95
     wandb.config.intervals = 3
     
@@ -80,10 +74,9 @@ def main():
 
     wandb.run.name = wandb.run.id
     wandb.run.tags = [group_temp, "1-bot", "actor-64x2", "critic-64x2/32", "avg-normal", env_name]
-    wandb.run.notes ="testing P controller on modded pend start, modded eval, deep critic 64/32 layers, 300 epochs"
+    wandb.run.notes ="trying out the OpenAI baselines hyperparams to check for tuning"
 
-    ISRAY = True
-
+    ISRAY = False
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--jobid', type=str, default=None)
@@ -109,7 +102,8 @@ def main():
         print("wandb clip_ratio", wandb.config.clip_ratio)
 
     # print(wandb.config)
-    ray.init(include_dashboard=False, ignore_reinit_error=True)
+    if(ISRAY):
+        ray.init(include_dashboard=False, ignore_reinit_error=True)
     # register_env("flythrugate-aviary-v0", lambda _: FlyThruGateAviary())
     
     # main run    
@@ -227,7 +221,6 @@ def main():
                 agents[j].actor_set_weights(actor_avg, wandb.config.kappa)
                 agents[j].critic_set_weights(critic_avg, wandb.config.kappa)
 
-        print(actor_avg)
 
         rewards = []
         jobs = []

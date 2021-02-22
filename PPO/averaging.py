@@ -3,7 +3,7 @@ import ray
 import random
 import wandb
 
-def assignment(agents, weights, ISRAY=True):
+def assignment(agents, weights, ISRAY=False):
 
     critic_avg = []
     actor_avg = []
