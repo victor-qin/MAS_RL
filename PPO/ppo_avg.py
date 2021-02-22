@@ -42,7 +42,7 @@ def main():
     
     ####configurations
 
-    group_temp = "022221-1_64-baselines"
+    group_temp = "022221-1_64-baselines2"
     # env_name = "Pendulum-v1"
 
     env_name = "Pendulum-v0"
@@ -53,9 +53,9 @@ def main():
     
 
     wandb.config.gamma = 0.99
-    wandb.config.update_interval = 512
-    wandb.config.actor_lr = 0.0003
-    wandb.config.critic_lr = 0.0003
+    wandb.config.update_interval = 64
+    wandb.config.actor_lr = 0.0001
+    wandb.config.critic_lr = 0.0002
     wandb.config.batch_size = 64
     wandb.config.clip_ratio = 0.2
     wandb.config.lmbda = 0.95
@@ -74,7 +74,7 @@ def main():
 
     wandb.run.name = wandb.run.id
     wandb.run.tags = [group_temp, "1-bot", "actor-64x2", "critic-64x2/32", "avg-normal", env_name]
-    wandb.run.notes ="trying out the OpenAI baselines hyperparams to check for tuning"
+    wandb.run.notes ="trying out smaller learning rates hyperparams to check for tuning"
 
     ISRAY = False
 

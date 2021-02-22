@@ -241,7 +241,7 @@ class Agent(object):
                     gaes, td_targets = self.gae_target(
                         rewards, v_values, next_v_value, done)
 
-                    choice = np.random.choice(len(states), size=self.config.batch_size, replace=False)
+                    # choice = np.random.choice(len(states), size=self.config.batch_size, replace=False)
 
                     for epoch in range(self.config.intervals):
                         actor_loss = self.actor.train(
