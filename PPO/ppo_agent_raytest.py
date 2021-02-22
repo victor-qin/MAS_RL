@@ -245,8 +245,8 @@ class Agent(object):
 
                     for epoch in range(self.config.intervals):
                         actor_loss = self.actor.train(
-                            old_policys, states, actions, gaes)
-                        critic_loss = self.critic.train(states, td_targets)
+                            old_policys[choice, :], states[choice, :], actions[choice, :], gaes[choice, :])
+                        critic_loss = self.critic.train(states[choice, :], td_targets[choice, :])
 
                     state_batch = []
                     action_batch = []

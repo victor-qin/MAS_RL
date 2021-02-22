@@ -53,7 +53,7 @@ def main():
     
 
     wandb.config.gamma = 0.99
-    wandb.config.update_interval = 512
+    wandb.config.update_interval = 200
     wandb.config.actor_lr = 0.0003
     wandb.config.critic_lr = 0.0003
     wandb.config.batch_size = 64
