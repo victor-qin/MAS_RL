@@ -1,3 +1,5 @@
 module load Anaconda3/5.0.1-fasrc01
 source activate es100
 cd fasrc/es100_workspace
+
+salloc -p test --mem 500 -t 0-06:00

@@ -16,3 +16,4 @@ dependencies:
         - wandb
         - gym
 	- ray
+	- stable-baselines3
