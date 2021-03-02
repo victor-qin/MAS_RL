@@ -26,7 +26,7 @@ import Quadcopter_SimCon
 tf.keras.backend.set_floatx('float64')
 
 # function for writing models out
-def writeout(agents, index, title = None, ISRAY=False):
+def writeout(agents, index, title = None, ISRAY=True):
     
     Path(wandb.run.dir + "/" + "epoch-" + str(index) + "/").mkdir(parents=True, exist_ok=True)
     
@@ -38,7 +38,7 @@ def writeout(agents, index, title = None, ISRAY=False):
             agents[j].save_weights(index, wandb.run.dir, wandb.run.id, title)
 
 
-# @ray.remote
+@ray.remote
 class Agent(object):
 
     class Actor:
@@ -59,6 +59,7 @@ class Agent(object):
         def get_action(self, state):
             state = np.reshape(state, [1, self.state_dim])
             mu, std = self.model.predict(state)
+
 
             action = np.random.normal(mu[0], std, size=self.action_dim)
             action = np.clip(action, -self.action_bound, self.action_bound)
@@ -132,7 +133,7 @@ class Agent(object):
                 Input((self.state_dim,)),
                 Dense(self.config.critic['layer1'], activation='relu'),
                 Dense(self.config.critic['layer2'], activation='relu'),
-                Dense(self.config.critic['layer3'], activation='relu'),
+                # Dense(self.config.critic['layer3'], activation='relu'),
                 Dense(1, activation='linear')
             ])
 
@@ -201,6 +202,9 @@ class Agent(object):
         reward_batch = []
         old_policy_batch = []
 
+        gaes_batch = []
+        td_targets_batch = []
+
         for ep in range(max_episodes):
             
             # trying to have multiple instances
@@ -234,43 +238,77 @@ class Agent(object):
                 state = next_state[0]
 
             print(len(state_batch))
-            if len(state_batch) >= self.config.update_interval:
-                print("update step")
-                states = self.list_to_batch(state_batch)
-                actions = self.list_to_batch(action_batch)
-                rewards = self.list_to_batch(reward_batch)
-                old_policys = self.list_to_batch(old_policy_batch)
-
-                v_values = self.critic.model.predict(states)
-                next_v_value = self.critic.model.predict(next_state)
-
-                gaes, td_targets = self.gae_target(
-                    rewards, v_values, next_v_value, done)
-
-                for epoch in range(self.config.intervals):
-                    choice = np.random.choice(len(states), size=self.config.batch_size, replace=False)
-
-                    actor_loss = self.actor.train(
-                        old_policys[choice, :], states[choice, :], actions[choice, :], gaes[choice, :])
-                    critic_loss = self.critic.train(states[choice, :], td_targets[choice, :])
-
-                # for epoch in range(self.config.intervals):
-                #     actor_loss = self.actor.train(
-                #         old_policys, states, actions, gaes)
-                #     critic_loss = self.critic.train(states, td_targets)
-
-                state_batch = []
-                action_batch = []
-                reward_batch = []
-                old_policy_batch = []
-
 
             print('Bot{}, EP{} EpisodeReward={}'.format(self.iden, ep, episode_reward))
             output.append(episode_reward)
             # wandb.log({'Reward' + str(self.iden): episode_reward})
-        
-        return output
 
+            states = self.list_to_batch(state_batch)
+            actions = self.list_to_batch(action_batch)
+            rewards = self.list_to_batch(reward_batch)
+            old_policys = self.list_to_batch(old_policy_batch)
+
+            v_values = self.critic.model.predict(states)
+            next_v_value = self.critic.model.predict(next_state)
+
+            gaes, td_targets = self.gae_target(
+                rewards, v_values, next_v_value, done)
+        
+            gaes_batch.append(gaes)
+            td_targets_batch.append(td_targets)
+
+        buffer = {}
+        buffer['states'] = state_batch
+        buffer['action'] = action_batch
+        buffer['reward'] = reward_batch
+        buffer['old_policy'] = old_policy_batch
+        buffer['gaes'] = gaes_batch
+        buffer['td_targets'] = td_targets_batch
+
+        return output, buffer
+
+    def move_gradients(self, buffer):
+
+        state_batch = buffer['states']
+        action_batch = buffer['action']
+        reward_batch = buffer['reward']
+        old_policy_batch = buffer['old_policy']
+
+        gaes_batch = buffer['gaes']
+        td_targets_batch = buffer['td_targets']
+
+        # if len(state_batch) >= self.config.update_interval:
+        print("update step")
+        states = self.list_to_batch(state_batch)
+        actions = self.list_to_batch(action_batch)
+        rewards = self.list_to_batch(reward_batch)
+        old_policys = self.list_to_batch(old_policy_batch)
+
+        gaes = self.list_to_batch(gaes_batch)
+        td_targets = self.list_to_batch(td_targets_batch)
+
+        # v_values = self.critic.model.predict(states)
+        # next_v_value = self.critic.model.predict(next_state)
+
+        # gaes, td_targets = self.gae_target(
+        #     rewards, v_values, next_v_value, done)
+
+        for epoch in range(self.config.intervals):
+            choice = np.random.choice(len(states), size=self.config.batch_size, replace=False)
+
+            actor_loss = self.actor.train(
+                old_policys[choice, :], states[choice, :], actions[choice, :], gaes[choice, :])
+            critic_loss = self.critic.train(states[choice, :], td_targets[choice, :])
+
+            # for epoch in range(self.config.intervals):
+            #     actor_loss = self.actor.train(
+            #         old_policys, states, actions, gaes)
+            #     critic_loss = self.critic.train(states, td_targets)
+
+            # state_batch = []
+            # action_batch = []
+            # reward_batch = []
+            # old_policy_batch = []
 
     def evaluate(self, render=False):
 

@@ -99,7 +99,7 @@ class ContinuousCartPoleEnv(gym.Env):
         done = self.T >= 300
         done = bool(done)
         
-        print(self.T)
+        # print(self.T)
 
         #LQR cost
         diff = (self.state - self.target).reshape(4,1)

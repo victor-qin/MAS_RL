@@ -55,6 +55,16 @@ class ContinuousCartPoleEnv(gym.Env):
 
         self.steps_beyond_done = None
 
+        self.T = 0
+
+        self.target = None
+        self.Q=np.eye(4)
+        self.Q[2,2]=100
+        self.Q[0,0]=1
+        self.Q*=0.1
+        self.R=0.1
+
+
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
@@ -80,18 +90,28 @@ class ContinuousCartPoleEnv(gym.Env):
         force = self.force_mag * float(action)
         self.state = self.stepPhysics(force)
         x, x_dot, theta, theta_dot = self.state
+
+        self.T += 1
+ 
         done = x < -self.x_threshold \
             or x > self.x_threshold \
             or theta < -self.theta_threshold_radians \
-            or theta > self.theta_threshold_radians
+            or theta > self.theta_threshold_radians \
+            or self.T >= 200  
+        
         done = bool(done)
 
+        diff = (self.state - self.target).reshape(4,1)
+        u = action[0]
+        cost = self.R*u**2 + diff.T.dot(self.Q).dot(diff)
+        # print(cost)
+
         if not done:
-            reward = 1.0
+            reward = 3.0 - cost
         elif self.steps_beyond_done is None:
             # Pole just fell!
             self.steps_beyond_done = 0
-            reward = 1.0
+            reward = 3.0 - cost
         else:
             if self.steps_beyond_done == 0:
                 logger.warn("""
@@ -104,9 +124,18 @@ Any further steps are undefined behavior.
 
         return np.array(self.state), reward, done, {}
 
-    def reset(self):
+    def reset(self, target = None):
         self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
         self.steps_beyond_done = None
+
+        if target is not None:
+            assert(target.shape == self.state.shape)
+            self.target = target
+        else:
+            # self.target = np.zeros(self.state.shape)
+            self.target = np.array([0,0,0 * np.pi,0])
+        
+        self.T = 0
         return np.array(self.state)
 
     def render(self, mode='human'):

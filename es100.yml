@@ -9,11 +9,14 @@ dependencies:
     - matplotlib
     - tensorflow
     - tensorflow_federated
+    - pytorch
     - hdf5
+    - ray
+	- stable-baselines3
     - pip:
         - argparse
         - ipykernel
         - wandb
         - gym
-	- ray
-	- stable-baselines3
+        - imageio
+
