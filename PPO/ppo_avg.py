@@ -42,39 +42,40 @@ def main():
     
     ####configurations
 
-    group_temp = "022221-1_64-baselines2"
+    group_temp = "022221-1_64-baselines11"
     # env_name = "Pendulum-v1"
 
     env_name = "Pendulum-v0"
     #     env_name = 'gym_quad-v0'
-    # env_name = "CartPole-v0"
+    # env_name = "CartPole-v2"
 
     wandb.init(group=group_temp, project="rl-ppo-federated", mode="online")
     
 
     wandb.config.gamma = 0.99
-    wandb.config.update_interval = 64
-    wandb.config.actor_lr = 0.0001
-    wandb.config.critic_lr = 0.0002
-    wandb.config.batch_size = 64
+    wandb.config.update_interval = 2000 #16400 #16384
+    wandb.config.actor_lr = 0.0003
+    wandb.config.critic_lr = 0.0003
+
+    wandb.config.batch_size = 32 #64
     wandb.config.clip_ratio = 0.2
     wandb.config.lmbda = 0.95
-    wandb.config.intervals = 3
-    
-    wandb.config.episodes = 5
-    wandb.config.num = 1
-    wandb.config.epochs = 300
+    wandb.config.intervals = 10
 
-    wandb.config.actor = {'layer1': 64, 'layer2' : 64}
-    wandb.config.critic = {'layer1': 64, 'layer2' : 64, 'layer3': 32}
+    wandb.config.episodes = 10 #82
+    wandb.config.num = 1
+    wandb.config.epochs = 70
+
+    wandb.config.actor = {'layer1': 32, 'layer2' : 32}
+    wandb.config.critic = {'layer1': 32, 'layer2' : 32, 'layer3': 16}
     
     wandb.config.average = "normal"    # normal, max, softmax, relu, epsilon
     wandb.config.kappa = 1      # range 1 (all avg) to 0 (no avg)
     wandb.config.epsilon = 0.2  # range from 1 to 0 (all random to never) - epsilon greedy
 
     wandb.run.name = wandb.run.id
-    wandb.run.tags = [group_temp, "1-bot", "actor-64x2", "critic-64x2/32", "avg-normal", env_name]
-    wandb.run.notes ="trying out smaller learning rates hyperparams to check for tuning"
+    wandb.run.tags = [group_temp, "1-bot", "actor-32x2", "critic-32x2/16", "avg-normal", env_name]
+    wandb.run.notes ="intense setup from openai, experiment w/ multiple parallel bots, more data exploited"
 
     ISRAY = False
 
@@ -120,6 +121,12 @@ def main():
     #     id="gym_quad-v0",
     #     entry_point = 'Quadcopter_SimCon.Simulation.gym_quad:GymQuad',
     # )
+
+    gym.envs.register(
+        id='CartPole-v2',
+        entry_point='continuous_cartpole:ContinuousCartPoleEnv',
+        max_episode_steps=200
+    ) 
 
     class Struct:
         def __init__(self, **entries):
