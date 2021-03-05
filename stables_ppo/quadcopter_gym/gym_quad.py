@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import mpl_toolkits.mplot3d.axes3d as p3
 import time
 
 import gym
@@ -16,11 +17,11 @@ os.environ["PYTHONPATH"] = parent_dir + ":" + os.environ.get("PYTHONPATH", "")
 
 # from trajectory import Trajectory
 # from ctrl import Control
-from .quadFiles.quad import Quadcopter
-from utils.windModel import Wind
-from utils.gymtools import makeGymFigures
-import utils
-import config
+from .quad import Quadcopter
+from .utils.windModel import Wind
+from .utils.gymtools import makeGymFigures
+from . import utils
+from . import config
 
 
 class GymQuad(gym.Env):
@@ -63,7 +64,8 @@ class GymQuad(gym.Env):
         )        
 
         # target definition - only location and orientation at the end of timesteps
-        self.target = np.zeros(6, dtype=np.float64)    # must be (6,) and within observation space
+        # self.target = np.zeros(6, dtype=np.float64)    # must be (6,) and within observation space
+        self.target = np.array([1, 0, 0, 0, 0, 0], dtype=np.float64)
         self.epsilon = 0.25
 
         numTimeStep = int(self.Tf/self.Ts+1)  
@@ -173,10 +175,9 @@ class GymQuad(gym.Env):
         waypoints = np.stack((self.init_pos, self.target[0:3]))
         ifsave = ifsave
 
+        utils.gymtools.makeGymFigures(self.quad.params, np.array(self.t_all), np.array(self.pos_all), np.array(self.vel_all), np.array(self.quat_all), np.array(self.omega_all), np.array(self.euler_all), np.array(self.w_cmd_all), np.array(self.wMotor_all), np.array(self.thr_all), np.array(self.tor_all), np.array(self.rewards))
 
-
-        utils.makeGymFigures(self.quad.params, np.array(self.t_all), np.array(self.pos_all), np.array(self.vel_all), np.array(self.quat_all), np.array(self.omega_all), np.array(self.euler_all), np.array(self.w_cmd_all), np.array(self.wMotor_all), np.array(self.thr_all), np.array(self.tor_all), np.array(self.rewards))
-        ani = utils.gymSameAxisAnimation(np.array(self.t_all), waypoints, np.array(self.pos_all), np.array(self.quat_all), self.Ts, self.quad.params, 1, 1, ifsave)
+        ani = utils.gymtools.gymSameAxisAnimation(np.array(self.t_all), waypoints, np.array(self.pos_all), np.array(self.quat_all), self.Ts, self.quad.params, 1, 1, ifsave)
         plt.show()
 
 # if __name__ == '__main__':
