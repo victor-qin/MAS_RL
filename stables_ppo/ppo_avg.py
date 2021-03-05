@@ -24,7 +24,7 @@ def noavg_evaluate(agents, env, timesteps = 10):
     episode_rewards = []
     for i in range(len(agents)):
         model = agents[i]
-        for _ in range(timesteps):
+        for _ in range(int(timesteps / wandb.config.num_agents) + 1):
             reward_sum = 0
             done = False
             obs = env.reset()
@@ -38,12 +38,12 @@ def noavg_evaluate(agents, env, timesteps = 10):
 def main():
 
     ##### Config Stuff
-    group_temp = "030121-4_none"
+    group_temp = "030121-4_max"
     env_id = 'Pendulum-v0'
 
     wandb.init(group=group_temp, project="rl-ppo-federated", mode="online")
     wandb.run.name = wandb.run.id
-    wandb.run.notes ="Running baselines, going none RWA for reference, unfixed sampling"
+    wandb.run.notes ="Running baselines, going max RWA for reference, unfixed sampling"
 
     wandb.config.gamma = 0.99 
     wandb.config.n_steps = 16384
@@ -62,9 +62,9 @@ def main():
     wandb.config.actor = {'layer1': 64, 'layer2' : 64}
     wandb.config.critic = {'layer1': 64, 'layer2' : 64}
 
-    wandb.config.average = None    # normal, max, softmax, relu, epsilon
+    wandb.config.average = "max"    # normal, max, softmax, relu, epsilon
     wandb.config.kappa = 1      # range 1 (all avg) to 0 (no avg)
-    wandb.config.epsilon = 0.2  # range from 1 to 0 (all random to never) - epsilon greedy
+    wandb.config.epsilon = 0.1  # range from 1 to 0 (all random to never) - epsilon greedy
 
     wandb.run.tags = [group_temp, 
                         str(wandb.config.num_agents) + "-bot", 
@@ -78,13 +78,11 @@ def main():
     # Set up agents and gyms
     eval_env = gym.make(env_id)
 
-    # Set a callback to save model every once in while
-    checkpoint_callback = CheckpointCallback(save_freq=wandb.config.n_steps, save_path= wandb.run.dir + '/models/',
-                                            name_prefix='rl_checkpoint_model')
-
-    eval_callback = EvalCallback(eval_env, best_model_save_path= wandb.run.dir + '/models/',
-                                log_path= wandb.run.dir + '/logs/', eval_freq=wandb.config.n_steps,
-                                deterministic=True, render=False)
+    # checkpoint_callback = CheckpointCallback(save_freq=wandb.config.n_steps, save_path= wandb.run.dir + '/models/' \
+    #                         + str(z) +'-agent_ ' + str(i) +'/', name_prefix='rl_checkpoint_model')
+    # eval_callback = EvalCallback(eval_env, best_model_save_path= wandb.run.dir + '/models/',
+    #                             log_path= wandb.run.dir + '/logs/', eval_freq=wandb.config.n_steps,
+    #                             deterministic=True, render=False)
 
     agents = []
     # create a bunch of agents
@@ -105,13 +103,14 @@ def main():
         reward_epoch = []
         for i in range(wandb.config.num_agents):
             # learning - need a callback w/ wandb
-
-            agents[i].learn(total_timesteps = wandb.config.n_steps * wandb.config.episodes, eval_freq = 1e4,
-                            callback=[checkpoint_callback, eval_callback])
+            # Set a callback to save model every once in while
+            agents[i].learn(total_timesteps = wandb.config.n_steps * wandb.config.episodes, eval_freq = 1e4)
 
             # epoch end eval
             mean_reward, std_reward = evaluate_policy(agents[i], eval_env, n_eval_episodes=10)
             reward_epoch.append(mean_reward)
+
+            agents[i].save(wandb.run.dir + '/models/'+ str(z) +'-agent_ ' + str(i) +'/')
             print(f"***mean_reward for agent {i}:{mean_reward:.2f} +/- {std_reward:.2f}")
             wandb.log({'batch': z, 'runs_' + str(i): (z+1) * wandb.config.n_steps * wandb.config.episodes, 'Reward' + str(i): mean_reward})
     
@@ -155,14 +154,43 @@ def main():
     
             # pass back the average
             for i in range(wandb.config.num_agents):
-                agents[i].policy.load_state_dict(mean_params, strict=False)
+
+                # if kappa is actually a thing
+                if wandb.config.kappa != 1:
+                    temp_params = dict(
+                        (
+                            name,
+                            th.stack([agents[i].policy.state_dict()[name] * (1 - wandb.config.kappa) \
+                                + mean_params[name] * wandb.config.kappa \
+                                for i in range(len(agents))]).sum(dim=0)
+                        )
+                    )
+                    agents[i].policy.load_state_dict(temp_params, strict=False)
+
+                    
+
+                else:
+                    agents[i].policy.load_state_dict(mean_params, strict=False)
 
             # eval average for records
-            mean_reward, std_reward = evaluate_policy(agents[i], eval_env, n_eval_episodes=10)
+            # eval average by going through all agents for records
+            eval_rewards = []
+            for i in range(wandb.config.num_agents):
+                temp_rewards, _ = evaluate_policy(agents[i], eval_env,
+                                                    n_eval_episodes= int(10 / wandb.config.num_agents) + 1, 
+                                                    return_episode_rewards = True
+                                                )
+                eval_rewards.append(temp_rewards)
+            
+            eval_rewards = np.array(eval_rewards)
+            mean_reward = np.mean(eval_rewards)
+            std_reward = np.std(eval_rewards)
+            # mean_reward, std_reward = evaluate_policy(agents[0], eval_env, n_eval_episodes=10)
             
         else:
             mean_reward, std_reward = noavg_evaluate(agents, eval_env)
 
+        agents[0].save(wandb.run.dir + '/models/averages/' + str(z) + '-avg')
         print(f":::mean_reward for average:{mean_reward:.2f} +/- {std_reward:.2f}")
         wandb.log({'batch': z, 'runs_average': (z+1)*wandb.config.num_agents * wandb.config.n_steps * wandb.config.episodes,'Epoch-average': mean_reward})
 
