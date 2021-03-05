@@ -11,8 +11,8 @@ from numpy import sin, cos, tan, pi, sign
 from scipy.integrate import ode
 
 from .initQuad import sys_params, init_cmd, init_state
-import utils
-import config
+from . import utils
+from . import config
 
 deg2rad = pi/180.0
 
@@ -61,10 +61,10 @@ class Quadcopter:
     def extended_state(self):
 
         # Rotation Matrix of current state (Direct Cosine Matrix)
-        self.dcm = utils.quat2Dcm(self.quat)
+        self.dcm = utils.rotationConversion.quat2Dcm(self.quat)
 
         # Euler angles of current state
-        YPR = utils.quatToYPR_ZYX(self.quat)
+        YPR = utils.rotationConversion.quatToYPR_ZYX(self.quat)
         self.euler = YPR[::-1] # flip YPR so that euler state = phi, theta, psi
         self.psi   = YPR[0]
         self.theta = YPR[1]
