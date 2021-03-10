@@ -184,6 +184,7 @@ def gymSameAxisAnimation(t_all, waypoints, pos_all, quat_all, Ts, params, xyzTyp
     ax.set_xlabel('X')
     if (config.orient == "NED"):
         ax.set_ylim3d([mid_y+maxRange, mid_y-maxRange])
+        z_wp = -z_wp
     elif (config.orient == "ENU"):
         ax.set_ylim3d([mid_y-maxRange, mid_y+maxRange])
     ax.set_ylabel('Y')

@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import mpl_toolkits.mplot3d.axes3d as p3
 import time
 
 import gym
@@ -19,17 +18,17 @@ os.environ["PYTHONPATH"] = parent_dir + ":" + os.environ.get("PYTHONPATH", "")
 # from ctrl import Control
 from .quad import Quadcopter
 from .utils.windModel import Wind
-from .utils.gymtools import makeGymFigures
+from .utils.gymtools import makeGymFigures, gymSameAxisAnimation
 from . import utils
 from . import config
 
 
 class GymQuad(gym.Env):
 
-    def __init__(self, isTrack = False):
+    def __init__(self, Tf = 1.0, isTrack = False):
         self.Ti = 0
         self.Ts = 0.005
-        self.Tf = 0.5
+        self.Tf = Tf
         self.t = self.Ti
 
         self.quad = Quadcopter(self.Ti)
@@ -37,12 +36,15 @@ class GymQuad(gym.Env):
         self.wind = Wind('None', 2.0, 90, -15)
 
         # gym definition stuff
-        self.action_space = spaces.Box(     # action space based on 4 rotors
-            low = self.quad.params["minWmotor"],
-            high = self.quad.params["maxWmotor"],
-            shape = (4,),
-            dtype=np.float32
+        self.action_space = spaces.Box(
+          low = -1,
+          high = 1,
+          shape = (4,),
+          dtype = np.float32
         )
+        
+        self.action_halfrange = float((self.quad.params["maxWmotor"] - self.quad.params["minWmotor"]) / 2)
+        self.action_default = self.action_halfrange + self.quad.params["minWmotor"]
 
         self.pos_max = np.array([5, 5, 5])
         self.pos_min = np.array([-5, -5, -5])
@@ -64,8 +66,9 @@ class GymQuad(gym.Env):
         )        
 
         # target definition - only location and orientation at the end of timesteps
+        # NOTE: this is in NED - so the z-axis points down
         # self.target = np.zeros(6, dtype=np.float64)    # must be (6,) and within observation space
-        self.target = np.array([1, 0, 0, 0, 0, 0], dtype=np.float64)
+        self.target = np.array([0, 0, -1, 0, 0, 0], dtype=np.float64)
         self.epsilon = 0.25
 
         numTimeStep = int(self.Tf/self.Ts+1)  
@@ -125,8 +128,9 @@ class GymQuad(gym.Env):
         # YPR = utils.quatToYPR_ZYX(state[3:7])  # translate into euler
         # eul_err = np.linalg.norm(YPR[::-1] - self.target[3:6])
 
-        done = (pos_err < self.epsilon) or (self.t >= self.Tf)
+        done = bool(self.t >= self.Tf)
 
+        # reward = - (self.pos_err_const * pos_err)
         reward = - (self.pos_err_const * pos_err +
                     self.spin_err_const * spin_err + 
                     self.vel_err_const * vel_err)
@@ -134,7 +138,8 @@ class GymQuad(gym.Env):
         return reward, done
 
     def _take_action(self, action):
-        self.quad.update(self.t, self.Ts, action, self.wind)
+        adjusted_act = self.action_halfrange * action + self.action_default
+        self.quad.update(self.t, self.Ts, adjusted_act, self.wind)
         self.t += self.Ts
 
     def step(self, action):
@@ -175,9 +180,8 @@ class GymQuad(gym.Env):
         waypoints = np.stack((self.init_pos, self.target[0:3]))
         ifsave = ifsave
 
-        utils.gymtools.makeGymFigures(self.quad.params, np.array(self.t_all), np.array(self.pos_all), np.array(self.vel_all), np.array(self.quat_all), np.array(self.omega_all), np.array(self.euler_all), np.array(self.w_cmd_all), np.array(self.wMotor_all), np.array(self.thr_all), np.array(self.tor_all), np.array(self.rewards))
-
-        ani = utils.gymtools.gymSameAxisAnimation(np.array(self.t_all), waypoints, np.array(self.pos_all), np.array(self.quat_all), self.Ts, self.quad.params, 1, 1, ifsave)
+        makeGymFigures(self.quad.params, np.array(self.t_all), np.array(self.pos_all), np.array(self.vel_all), np.array(self.quat_all), np.array(self.omega_all), np.array(self.euler_all), np.array(self.w_cmd_all), np.array(self.wMotor_all), np.array(self.thr_all), np.array(self.tor_all), np.array(self.rewards))
+        ani = gymSameAxisAnimation(np.array(self.t_all), waypoints, np.array(self.pos_all), np.array(self.quat_all), self.Ts, self.quad.params, 1, 1, ifsave)
         plt.show()
 
 # if __name__ == '__main__':
