@@ -1,5 +1,6 @@
 import gym
 import os
+import torch as th
 # os.chdir('../')
 
 # print(os.path.isdir(os.getcwd() + '/Quadcopter_SimCon/'))
@@ -21,21 +22,32 @@ register(
     entry_point = 'quadcopter_gym.gym_quad:GymQuad',
 )
 
+register(
+    id="CartPole-v2",
+    entry_point = 'quadcopter_gym.continuous_cartpole:ContinuousCartPoleEnv',
+)
+
 registered_envs = set(gym.envs.registry.env_specs.keys())
 print('gym_quad-v0' in registered_envs)
 
-env = gym.make('gym_quad-v0')
-eval_env = gym.make('gym_quad-v0')
+# build test gyms
+env = gym.make('gym_quad-v0', Tf=1)
+eval_env = gym.make('gym_quad-v0', Tf=1)
 print(check_env(env))
 
-model = PPO(MlpPolicy, env, verbose=0)
+#build model, initial eval
+policy_kwargs = dict(activation_fn=th.nn.ReLU,
+                     net_arch=[dict(pi=[256, 256], vf=[256, 256])])
+model = PPO(MlpPolicy, env, policy_kwargs=policy_kwargs, verbose=0)
 mean, std = evaluate_policy(model, eval_env)
 print(mean, std)
 
-model.learn(10000)
+# build model and test
+model.learn(100000)
 mean, std = evaluate_policy(model, eval_env)
 print(mean, std)
 
+# render demo
 episode_rewards, done = 0, False
 obs = eval_env.reset(isTrack = True)
 while not done:
@@ -47,3 +59,16 @@ while not done:
 
 print('episodes', episode_rewards)
 eval_env.render()  
+
+
+episode_rewards, done = 0, False
+obs = env.reset(isTrack = True)
+while not done:
+    action, _states = model.predict(obs)
+    obs, reward, done, _ = env.step(action)
+      
+    # Stats
+    episode_rewards += reward
+
+print('episodes', episode_rewards)
+env.render()  
