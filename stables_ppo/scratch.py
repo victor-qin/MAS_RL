@@ -38,7 +38,15 @@ print(check_env(env))
 #build model, initial eval
 policy_kwargs = dict(activation_fn=th.nn.ReLU,
                      net_arch=[dict(pi=[256, 256], vf=[256, 256])])
-model = PPO(MlpPolicy, env, policy_kwargs=policy_kwargs, verbose=0)
+model = PPO(MlpPolicy, env, verbose=0,
+            learning_rate = 0.0004,
+            n_steps = 512,
+            batch_size = 32,
+            n_epochs = 5,
+            gamma = 0.98,
+            gae_lambda = 0.95,
+            clip_range = 0.2,
+            )
 mean, std = evaluate_policy(model, eval_env)
 print(mean, std)
 
@@ -58,7 +66,7 @@ while not done:
     episode_rewards += reward
 
 print('episodes', episode_rewards)
-eval_env.render()  
+# eval_env.render()  
 
 
 episode_rewards, done = 0, False
@@ -71,4 +79,4 @@ while not done:
     episode_rewards += reward
 
 print('episodes', episode_rewards)
-env.render()  
+# env.render()  
