@@ -1,0 +1,59 @@
+Pendulum-v0 details
+
+
+    wandb.config.gamma = 0.99 
+    wandb.config.n_steps = 16384
+    wandb.config.actor_lr = 0.0003
+    wandb.config.critic_lr = 0.0003
+    wandb.config.batch_size = 64
+    wandb.config.clip_ratio = 0.2
+    wandb.config.lmbda = 0.95
+    wandb.config.intervals = 10
+
+    wandb.config.episodes = 1
+    wandb.config.num_agents = 8
+    wandb.config.epochs = 80
+    wandb.config.num_cpu = 2
+
+    wandb.config.actor = {'layer1': 64, 'layer2' : 64}
+    wandb.config.critic = {'layer1': 64, 'layer2' : 64}
+
+    wandb.config.average = None   # normal, max, softmax, relu, epsilon
+    wandb.config.kappa = 1      # range 1 (all avg) to 0 (no avg)
+    wandb.config.epsilon = 0.15  # range from 1 to 0 (all random to never) - epsilon greedy
+
+
+gym_quad-v0 details
+
+    wandb.config.gamma = 0.98 
+    wandb.config.n_steps = 512
+    wandb.config.actor_lr = 0.0004
+    wandb.config.critic_lr = 0.0004
+    wandb.config.batch_size = 32
+    wandb.config.clip_ratio = 0.2
+    wandb.config.lmbda = 0.95
+    wandb.config.intervals = 5
+
+    wandb.config.episodes = 10
+    wandb.config.num_agents = 4
+    wandb.config.epochs = 150
+    wandb.config.num_cpu = 2
+
+    wandb.config.actor = {'layer1': 256, 'layer2' : 256}
+    wandb.config.critic = {'layer1': 256, 'layer2' : 256}
+
+From the colab:
+  n_envs: 1
+  n_timesteps: !!float 2e6
+  policy: 'MlpPolicy'
+  n_steps: 512
+  batch_size: 32
+  gae_lambda: 0.95
+  gamma: 0.98
+  n_epochs: 5
+  ent_coef: 0.0
+  learning_rate: !!float 4e-4
+  clip_range: 0.2
+  policy_kwargs: dict(net_arch=[dict(pi=[256, 256], vf=[256, 256])])
+
+  
