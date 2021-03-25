@@ -56,4 +56,20 @@ From the colab:
   clip_range: 0.2
   policy_kwargs: dict(net_arch=[dict(pi=[256, 256], vf=[256, 256])])
 
-  
+gym_quad-v0 new
+    wandb.config.gamma = 0.9999 
+    wandb.config.n_steps = 1024
+    wandb.config.actor_lr = 0.00014
+    wandb.config.critic_lr = 0.00014
+    wandb.config.batch_size = 32
+    wandb.config.clip_ratio = 0.2
+    wandb.config.lmbda = 0.98
+    wandb.config.intervals = 10
+
+    wandb.config.episodes = 10
+    wandb.config.num_agents = 4
+    wandb.config.epochs = 50
+    wandb.config.num_cpu = 2
+
+    wandb.config.actor = {'layer1': 256, 'layer2' : 256}
+    wandb.config.critic = {'layer1': 256, 'layer2' : 256}

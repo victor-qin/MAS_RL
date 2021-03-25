@@ -46,33 +46,54 @@ def main():
     )
 
     ##### Config Stuff
-    group_temp = "030121-4_none"
-    env_id = 'Pendulum-v0'
+    group_temp = "032421-4_eps0.15_64"
+    # env_id = 'Pendulum-v0' 
+    env_id = 'gym_quad-v0'
 
-    wandb.init(group=group_temp, project="rl-ppo-federated", mode="online")
+    # possible projects: "rl-ppo-pend-v0-3", "rl-ppo-gym_quad-v0-3", "rl-ppo-gym_quad-v0-2"
+    wandb.init(group=group_temp, project="rl-ppo-gym_quad-v0-3", mode="online")
     wandb.run.name = wandb.run.id
-    wandb.run.notes ="Running baselines, going none RWA for reference, unfixed sampling"
+    wandb.run.notes ="Epsilon 0.15 weighting, for 4 agent case quadcopter, 64 net, final presentation"
 
-    wandb.config.gamma = 0.99 
-    wandb.config.n_steps = 16384
-    wandb.config.actor_lr = 0.0003
-    wandb.config.critic_lr = 0.0003
-    wandb.config.batch_size = 64
+    # wandb.config.gamma = 0.99 
+    # wandb.config.n_steps = 16384
+    # wandb.config.actor_lr = 0.0003
+    # wandb.config.critic_lr = 0.0003
+    # wandb.config.batch_size = 64
+    # wandb.config.clip_ratio = 0.2
+    # wandb.config.lmbda = 0.95
+    # wandb.config.intervals = 10
+
+    # wandb.config.episodes = 3
+    # wandb.config.num_agents = 16
+    # wandb.config.epochs = 40
+    # wandb.config.num_cpu = 2
+    # wandb.config.num_eval = 10
+    
+    wandb.config.gamma = 0.9999 
+    wandb.config.n_steps = 1024
+    wandb.config.actor_lr = 0.00014
+    wandb.config.critic_lr = 0.00014
+    wandb.config.batch_size = 32
     wandb.config.clip_ratio = 0.2
-    wandb.config.lmbda = 0.95
+    wandb.config.lmbda = 0.98
     wandb.config.intervals = 10
 
-    wandb.config.episodes = 5
+    wandb.config.episodes = 10
     wandb.config.num_agents = 4
-    wandb.config.epochs = 40
+    wandb.config.epochs = 50
     wandb.config.num_cpu = 2
+    wandb.config.num_eval = 10
+
+    # wandb.config.actor = {'layer1': 256, 'layer2' : 256}
+    # wandb.config.critic = {'layer1': 256, 'layer2' : 256}
 
     wandb.config.actor = {'layer1': 64, 'layer2' : 64}
     wandb.config.critic = {'layer1': 64, 'layer2' : 64}
 
-    wandb.config.average = None    # normal, max, softmax, relu, epsilon
+    wandb.config.average = 'epsilon'    # normal, max, softmax, relu, epsilon
     wandb.config.kappa = 1      # range 1 (all avg) to 0 (no avg)
-    wandb.config.epsilon = 0.2  # range from 1 to 0 (all random to never) - epsilon greedy
+    wandb.config.epsilon = 0.15  # range from 1 to 0 (all random to never) - epsilon greedy
 
     wandb.run.tags = [group_temp, 
                         str(wandb.config.num_agents) + "-bot", 
@@ -96,14 +117,14 @@ def main():
     # create a bunch of agents
     for _ in range(wandb.config.num_agents):
 
-        env = gym.make(env_id)
-        # env = make_vec_env(env_id, n_envs=wandb.config.num_cpu)
-
+        # ***NOTE: be careful with the envs you're using
+        # env = gym.make(env_id)
+        env = make_vec_env(env_id, n_envs=wandb.config.num_cpu)
 
         model = PPO(MlpPolicy, env, verbose=0,
                     learning_rate = wandb.config.actor_lr,
-                    n_steps = wandb.config.n_steps,
-                    # n_steps= int(wandb.config.n_steps / wandb.config.num_cpu),
+                    # n_steps = wandb.config.n_steps,
+                    n_steps= int(wandb.config.n_steps / wandb.config.num_cpu),
                     batch_size = wandb.config.batch_size,
                     n_epochs = wandb.config.intervals,
                     gamma = wandb.config.gamma,
@@ -170,7 +191,7 @@ def main():
                         name,
                         th.stack([agents[i].policy.state_dict()[name] * weights[i] for i in range(len(agents))]).sum(dim=0)
                     )
-                    for name in all_params.keys()
+                    for name in mean_params.keys()
                     # if ("policy_net" in name or "shared_net" in name or "action_net" in name) 
                     # if ("value" in name or "shared_net" in name)
                 )
@@ -211,6 +232,7 @@ def main():
             # mean_reward, std_reward = evaluate_policy(agents[0], eval_env, n_eval_episodes=10)
             
         else:
+            print('no average')
             mean_reward, std_reward = noavg_evaluate(agents, eval_env)
 
         agents[0].save(wandb.run.dir + '/models/averages/' + str(z) + '-avg')
