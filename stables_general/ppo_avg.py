@@ -46,44 +46,44 @@ def main():
     )
 
     ##### Config Stuff
-    group_temp = "032421-4_eps0.15_64"
-    # env_id = 'Pendulum-v0' 
-    env_id = 'gym_quad-v0'
+    group_temp = "033021-8_max-kappa0.95"
+    env_id = 'Pendulum-v0' 
+    # env_id = 'gym_quad-v0'
 
     # possible projects: "rl-ppo-pend-v0-3", "rl-ppo-gym_quad-v0-3", "rl-ppo-gym_quad-v0-2"
-    wandb.init(group=group_temp, project="rl-ppo-gym_quad-v0-3", mode="online")
+    wandb.init(group=group_temp, project="rl-ppo-pend-v0-3", mode="online")
     wandb.run.name = wandb.run.id
-    wandb.run.notes ="Epsilon 0.15 weighting, for 4 agent case quadcopter, 64 net, final presentation"
+    wandb.run.notes ="max weighting, kappa 0.95, for 8 agent case pendulum, 64 net, final presentation"
 
-    # wandb.config.gamma = 0.99 
-    # wandb.config.n_steps = 16384
-    # wandb.config.actor_lr = 0.0003
-    # wandb.config.critic_lr = 0.0003
-    # wandb.config.batch_size = 64
-    # wandb.config.clip_ratio = 0.2
-    # wandb.config.lmbda = 0.95
-    # wandb.config.intervals = 10
-
-    # wandb.config.episodes = 3
-    # wandb.config.num_agents = 16
-    # wandb.config.epochs = 40
-    # wandb.config.num_cpu = 2
-    # wandb.config.num_eval = 10
-    
-    wandb.config.gamma = 0.9999 
-    wandb.config.n_steps = 1024
-    wandb.config.actor_lr = 0.00014
-    wandb.config.critic_lr = 0.00014
-    wandb.config.batch_size = 32
+    wandb.config.gamma = 0.99 
+    wandb.config.n_steps = 16384
+    wandb.config.actor_lr = 0.0003
+    wandb.config.critic_lr = 0.0003
+    wandb.config.batch_size = 64
     wandb.config.clip_ratio = 0.2
-    wandb.config.lmbda = 0.98
+    wandb.config.lmbda = 0.95
     wandb.config.intervals = 10
 
-    wandb.config.episodes = 10
-    wandb.config.num_agents = 4
-    wandb.config.epochs = 50
-    wandb.config.num_cpu = 2
+    wandb.config.episodes = 3
+    wandb.config.num_agents = 8
+    wandb.config.epochs = 40
+    wandb.config.num_cpu = 4
     wandb.config.num_eval = 10
+    
+    # wandb.config.gamma = 0.9999 
+    # wandb.config.n_steps = 1024
+    # wandb.config.actor_lr = 0.00014
+    # wandb.config.critic_lr = 0.00014
+    # wandb.config.batch_size = 32
+    # wandb.config.clip_ratio = 0.2
+    # wandb.config.lmbda = 0.98
+    # wandb.config.intervals = 10
+
+    # wandb.config.episodes = 10
+    # wandb.config.num_agents = 4
+    # wandb.config.epochs = 50
+    # wandb.config.num_cpu = 2
+    # wandb.config.num_eval = 10
 
     # wandb.config.actor = {'layer1': 256, 'layer2' : 256}
     # wandb.config.critic = {'layer1': 256, 'layer2' : 256}
@@ -91,8 +91,8 @@ def main():
     wandb.config.actor = {'layer1': 64, 'layer2' : 64}
     wandb.config.critic = {'layer1': 64, 'layer2' : 64}
 
-    wandb.config.average = 'epsilon'    # normal, max, softmax, relu, epsilon
-    wandb.config.kappa = 1      # range 1 (all avg) to 0 (no avg)
+    wandb.config.average = 'max'    # normal, max, softmax, relu, epsilon
+    wandb.config.kappa = 0.95      # range 1 (all avg) to 0 (no avg)
     wandb.config.epsilon = 0.15  # range from 1 to 0 (all random to never) - epsilon greedy
 
     wandb.run.tags = [group_temp, 
